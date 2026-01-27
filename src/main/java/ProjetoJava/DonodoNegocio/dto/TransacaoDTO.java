@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class TransacaoDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private Long usuarioId;
     private Long tipoId;
     private String tabelaResponsavel;

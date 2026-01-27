@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public class ClienteDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private String nome;
     private String endereco;
     private String telefone;

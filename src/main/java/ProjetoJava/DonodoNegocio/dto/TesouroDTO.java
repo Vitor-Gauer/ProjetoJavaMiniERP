@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public class TesouroDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private String nomeConta;
     private BigDecimal saldoAtual;
 }

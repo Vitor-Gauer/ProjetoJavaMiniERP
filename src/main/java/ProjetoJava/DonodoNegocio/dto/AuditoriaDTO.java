@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class AuditoriaDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private Long usuarioId;
     private String tipoOperacao;
     private String tabelaAfetada;

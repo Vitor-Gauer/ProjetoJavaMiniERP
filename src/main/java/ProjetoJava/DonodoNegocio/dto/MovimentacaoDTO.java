@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public class MovimentacaoDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private Long transacaoPaiId;
     private String tabelaMovimentada;
     private Integer movimentadoId;

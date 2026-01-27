@@ -12,4 +12,7 @@ public abstract class BaseEmpresaEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
+
+    @Column(name = "id_local_empresa", length = 30)
+    private String idLocalEmpresa;
 }

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public class TipoTransacaoDTO {
     private Long id;
     private Long empresaId;
+    private Long idLocalEmpresa;
     private String nome;
     private BigDecimal prctJuros;
     private boolean ehRecebimento;
