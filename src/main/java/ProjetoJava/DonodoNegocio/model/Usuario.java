@@ -8,10 +8,22 @@ import lombok.Setter;
 @Table(name = "Usuario")
 @Getter
 @Setter
+@AssociationOverride(
+    name = "empresa",
+    joinColumns = @JoinColumn(
+        name = "empresa_id", 
+        nullable = false, 
+        foreignKey = @ForeignKey(name = "fk_usuario_empresa")
+    )
+)
 public class Usuario extends BaseEmpresaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_usuario_id", nullable = false)
+    @JoinColumn(
+        name = "tipo_usuario_id", 
+        nullable = false, 
+        foreignKey = @ForeignKey(name = "fk_usuario_tipo_usuario")
+    )
     private TipoUsuario tipoUsuario;
 
     @Column(nullable = false, length = 50)

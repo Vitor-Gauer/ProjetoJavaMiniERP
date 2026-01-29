@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @Table(name = "Tesouro")
 @Getter
 @Setter
+@AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_tesouro_empresa")))
 public class Tesouro extends BaseEmpresaEntity {
 
     @Column(name = "nome_conta", nullable = false, length = 100)

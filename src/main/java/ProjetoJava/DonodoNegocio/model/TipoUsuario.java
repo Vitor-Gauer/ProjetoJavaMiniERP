@@ -8,6 +8,7 @@ import lombok.Setter;
 @Table(name = "Tipo_Usuario")
 @Getter
 @Setter
+@AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_tipo_usuario_empresa")))
 public class TipoUsuario extends BaseEmpresaEntity {
 
     @Column(nullable = false, unique = true, length = 50)

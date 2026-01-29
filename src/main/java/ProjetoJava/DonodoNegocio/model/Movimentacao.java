@@ -9,10 +9,11 @@ import java.math.BigDecimal;
 @Table(name = "Movimentacao")
 @Getter
 @Setter
+@AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_movimentacao_empresa")))
 public class Movimentacao extends BaseEmpresaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transacao_pai_id", nullable = false)
+    @JoinColumn(name = "transacao_pai_id", nullable = false, foreignKey = @ForeignKey(name = "fk_movimentacao_transacao"))
     private Transacao transacaoPai;
 
     @Column(name = "tabela_movimentada", nullable = false, length = 20)
