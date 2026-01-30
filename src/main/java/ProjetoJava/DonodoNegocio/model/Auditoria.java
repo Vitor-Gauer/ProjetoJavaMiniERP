@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
 @Table(name = "Auditoria")
 @Getter
 @Setter
+@AssociationOverrides({
+    @AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_auditoria_empresa"))),
+    @AssociationOverride(name = "usuario", joinColumns = @JoinColumn(name = "usuario_id", nullable = false, foreignKey = @ForeignKey(name = "fk_auditoria_usuario")))
+})
 public class Auditoria extends BaseEmpresaUsuarioEntity {
 
     @Column(name = "tipo_operacao", nullable = false, length = 20)

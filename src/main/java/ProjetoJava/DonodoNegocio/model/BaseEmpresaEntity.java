@@ -13,6 +13,6 @@ public abstract class BaseEmpresaEntity extends BaseEntity {
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
 
-    @Column(name = "id_local_empresa", length = 30)
-    private String idLocalEmpresa;
+    @Column(name = "id_local_empresa", nullable = false)
+    private Integer idLocalEmpresa;
 }
