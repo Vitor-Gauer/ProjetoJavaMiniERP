@@ -9,10 +9,14 @@ import java.time.LocalDateTime;
 @Table(name = "Transacao")
 @Getter
 @Setter
+@AssociationOverrides({
+    @AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transacao_empresa"))),
+    @AssociationOverride(name = "usuario", joinColumns = @JoinColumn(name = "usuario_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transacao_usuario")))
+})
 public class Transacao extends BaseEmpresaUsuarioEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_id", nullable = false)
+    @JoinColumn(name = "tipo_id", nullable = false, foreignKey = @ForeignKey(name = "fk_transacao_tipo_transacao"))
     private TipoTransacao tipoTransacao;
 
     @Column(name = "tabela_responsavel", nullable = false, length = 20)

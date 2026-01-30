@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @Table(name = "Produto")
 @Getter
 @Setter
+@AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_produto_empresa")))
 public class Produto extends BaseEmpresaEntity {
 
     @Column(nullable = false)
@@ -21,7 +22,7 @@ public class Produto extends BaseEmpresaEntity {
     private String submarca;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estoque_id", nullable = false)
+    @JoinColumn(name = "estoque_id", nullable = false, foreignKey = @ForeignKey(name = "fk_produto_estoque"))
     private Estoque estoque;
 
     @Column(name = "valor_uni", nullable = false, precision = 14, scale = 2)
@@ -31,7 +32,7 @@ public class Produto extends BaseEmpresaEntity {
     private BigDecimal quantidade;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fornecedor_id", nullable = false)
+    @JoinColumn(name = "fornecedor_id", nullable = false, foreignKey = @ForeignKey(name = "fk_produto_fornecedor"))
     private Fornecedor fornecedor;
 
     @Column(length = 50)
