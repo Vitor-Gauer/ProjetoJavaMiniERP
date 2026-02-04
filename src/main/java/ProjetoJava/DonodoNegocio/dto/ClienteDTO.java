@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 
 @Data
 public class ClienteDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 
@@ -20,7 +19,6 @@ public class ClienteDTO {
     @Size(max = 12, message = "O telefone deve ter no máximo 12 caracteres")
     private String telefone;
 
-    @NotNull(message = "O saldo não pode ser nulo")
-    @PositiveOrZero(message = "O saldo deve ser zero ou maior")
+    @NotNull(message = "O saldo tem que ter um valor")
     private BigDecimal saldo;
 }

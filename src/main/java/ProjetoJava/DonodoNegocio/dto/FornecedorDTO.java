@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 @Data
 public class FornecedorDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 

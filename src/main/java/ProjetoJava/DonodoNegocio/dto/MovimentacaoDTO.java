@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 
 @Data
 public class MovimentacaoDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 

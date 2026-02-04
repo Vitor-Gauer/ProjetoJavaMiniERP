@@ -8,7 +8,6 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 @Data
 public class ProdutoDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 
@@ -24,6 +23,7 @@ public class ProdutoDTO {
     @PositiveOrZero
     private BigDecimal valorUni;
 
+    @NotNull(message = "A quantidade presente no estoque é obrigatória")
     @PositiveOrZero
     private BigDecimal quantidade;
 
