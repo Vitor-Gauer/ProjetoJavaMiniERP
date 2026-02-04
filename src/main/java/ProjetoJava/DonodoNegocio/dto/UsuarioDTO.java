@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 
 @Data
 public class UsuarioDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 
@@ -18,6 +17,6 @@ public class UsuarioDTO {
     private String login;
 
     @NotBlank(message = "A senha é obrigatória")
-    private String senha; // Renomeado: Recebe a senha crua
+    private String senha;
     private boolean ativo;
 }

@@ -16,6 +16,9 @@ public class Empresa extends BaseEntity {
     @Column(name = "login_master", nullable = false, unique = true, length = 50)
     private String loginMaster;
 
+    @Column(name = "login_publico", nullable = false, unique = true, length = 50)
+    private String loginPublico;
+
     @Column(name = "senha_hash_admin", nullable = false, columnDefinition = "TEXT")
     private String senhaHashAdmin;
 

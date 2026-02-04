@@ -5,10 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 
 @Data
 public class TipoUsuarioDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 
-    @NotBlank(message = "A descrição do cargo é obrigatória")
+    @NotBlank(message = "O nome do cargo é obrigatório")
     private String cargo;
 }

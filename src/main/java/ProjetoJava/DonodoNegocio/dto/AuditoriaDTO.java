@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 
 @Data
 public class AuditoriaDTO {
-    private Long id;
     private Long empresaId;
     private Integer idLocalEmpresa;
     private Long usuarioId;

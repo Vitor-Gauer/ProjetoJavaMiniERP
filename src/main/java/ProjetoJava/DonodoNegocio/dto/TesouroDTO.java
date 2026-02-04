@@ -8,7 +8,6 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 @Data
 public class TesouroDTO {
-    private Long id;
     private Long empresaId;
     private Long idLocalEmpresa;
 

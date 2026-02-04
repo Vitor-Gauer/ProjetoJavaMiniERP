@@ -11,12 +11,11 @@ import java.util.Optional;
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
-    // O Spring monta o SQL automaticamente baseado no nome do método:
-    // SELECT * FROM Produto WHERE empresa_id = ? ORDER BY id_local_empresa ASC
+    // Listar todos as entidades pertencentes a uma empresa
     List<Produto> findByEmpresaIdOrderByIdLocalEmpresaAsc(Long empresaId);
 
-    // Busca item específico da empresa
-    Optional<Produto> findByEmpresaIdAndIdLocalEmpresa(Long empresaId, Long idLocalEmpresa);
+    // Buscar item específico da empresa (para alteração ou consulta)
+    Optional<Produto> findByEmpresaIdAndIdLocalEmpresa(Long empresaId, Integer idLocalEmpresa);
 
     // Query customizada para achar o maior ID local usado (para gerar o próximo)
     @Query("SELECT MAX(p.idLocalEmpresa) FROM Produto p WHERE p.empresa.id = :empresaId")
