@@ -10,10 +10,15 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_auditoria_empresa")))
-@AssociationOverride(name = "usuario", joinColumns = @JoinColumn(name = "usuario_id", nullable = false, foreignKey = @ForeignKey(name = "fk_auditoria_usuario")))
-public class Auditoria extends BaseEmpresaUsuarioEntity {
+public class Auditoria extends BaseEmpresaEntity {
 
-    @Column(name = "tipo_operacao", nullable = false, length = 20)
+    @Column(name = "login_id", nullable = false)
+    private Long loginId;
+
+    @Column(name = "eh_admin", nullable = false)
+    private boolean ehAdmin;
+
+    @Column(name = "tipo_operacao", nullable = false, length = 30) // Aumentado para caber "POSSIVEL_TENTATIVA_INVASAO"
     private String tipoOperacao;
 
     @Column(name = "tabela_afetada", nullable = false, length = 50)

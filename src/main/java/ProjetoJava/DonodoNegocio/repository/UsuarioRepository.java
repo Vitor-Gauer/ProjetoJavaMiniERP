@@ -17,6 +17,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByLoginAndEmpresaId(String login, Long empresaId);
 
+    // Busca global por login (assume unicidade ou retorna erro se duplicado)
+    Optional<Usuario> findByLogin(String login);
+
     @Query("SELECT MAX(u.idLocalEmpresa) FROM Usuario u WHERE u.empresa.id = :empresaId")
     Integer findMaxIdLocalByEmpresaId(Long empresaId);
 }
