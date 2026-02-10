@@ -1,18 +1,19 @@
 package ProjetoJava.DonodoNegocio.security;
 
+import ProjetoJava.DonodoNegocio.mapper.AuditoriaMapper;
 import ProjetoJava.DonodoNegocio.model.Auditoria;
 import ProjetoJava.DonodoNegocio.model.Empresa;
-import ProjetoJava.DonodoNegocio.model.Usuario;
 import ProjetoJava.DonodoNegocio.repository.AuditoriaRepository;
 import ProjetoJava.DonodoNegocio.repository.EmpresaRepository;
 import ProjetoJava.DonodoNegocio.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,9 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class LoginListeners {
 
+    private static final Logger logger = LoggerFactory.getLogger(LoginListeners.class);
+
     private final AuditoriaRepository auditoriaRepository;
     private final EmpresaRepository empresaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaMapper auditoriaMapper;
 
     // Armazena tentativas falhas em memória (Username -> Count)
     private final Map<String, Integer> loginAttempts = new ConcurrentHashMap<>();
@@ -31,84 +35,75 @@ public class LoginListeners {
     @EventListener
     public void onSuccess(AuthenticationSuccessEvent event) {
         Object principal = event.getAuthentication().getPrincipal();
-        if (principal instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) principal;
-            String username = userDetails.getUsername();
-            
-            // Reset tentativas falhas
-            loginAttempts.remove(username);
+        if (principal instanceof CustomUserDetails userDetails) {
+            loginAttempts.remove(userDetails.getUsername());
 
-            // Registrar Auditoria de Login
-            Auditoria auditoria = new Auditoria();
-            auditoria.setEmpresa(userDetails.getEmpresaEntity());
-            auditoria.setLoginId(userDetails.getId());
-            auditoria.setEhAdmin(userDetails.isEmpresa());
-            auditoria.setTipoOperacao("LOGIN");
-            auditoria.setTabelaAfetada("SISTEMA");
-            auditoria.setDataHora(LocalDateTime.now());
-            
-            // Para login, idLocalEmpresa pode ser 0 ou null? 
-            // Auditoria requer idLocalEmpresa (Integer). 
-            // Se for Empresa, não tem idLocalEmpresa. Se for Usuario, tem.
-            // Mas Auditoria.idLocalEmpresa é Integer.
-            // Vou usar 0 para eventos de sistema/login se não houver contexto local claro.
-            if (userDetails.getUsuarioEntity() != null && userDetails.getUsuarioEntity().getIdLocalEmpresa() != null) {
-                auditoria.setIdLocalEmpresa(userDetails.getUsuarioEntity().getIdLocalEmpresa());
-            } else {
-                auditoria.setIdLocalEmpresa(0); 
+            try {
+                Auditoria auditoria = auditoriaMapper.toEntityLogin(userDetails);
+                auditoriaRepository.save(auditoria);
+            } catch (Exception e) {
+                logger.error("Erro ao salvar auditoria de login", e);
             }
-
-            auditoriaRepository.save(auditoria);
         }
     }
 
     @EventListener
     public void onFailure(AuthenticationFailureBadCredentialsEvent event) {
         Object principal = event.getAuthentication().getPrincipal();
-        String username = principal.toString();
+        if (principal == null) return;
+
+        String rawUsername = principal.toString();
         
-        int attempts = loginAttempts.getOrDefault(username, 0) + 1;
-        loginAttempts.put(username, attempts);
+        int attempts = loginAttempts.getOrDefault(rawUsername, 0) + 1;
+        loginAttempts.put(rawUsername, attempts);
 
         if (attempts >= 10) {
-            // Tenta identificar a empresa para registrar a auditoria
-            Empresa empresaAlvo = null;
-            Long loginId = null;
-            boolean ehAdmin = false;
-            Integer idLocal = 0;
-
-            Optional<Empresa> empOpt = empresaRepository.findByLoginMaster(username);
-            if (empOpt.isPresent()) {
-                empresaAlvo = empOpt.get();
-                loginId = empresaAlvo.getId();
-                ehAdmin = true;
-            } else {
-                Optional<Usuario> userOpt = usuarioRepository.findByLogin(username);
-                if (userOpt.isPresent()) {
-                    Usuario u = userOpt.get();
-                    empresaAlvo = u.getEmpresa();
-                    loginId = u.getId();
-                    ehAdmin = false;
-                    idLocal = u.getIdLocalEmpresa();
-                }
-            }
-
-            if (empresaAlvo != null) {
-                Auditoria auditoria = new Auditoria();
-                auditoria.setEmpresa(empresaAlvo);
-                auditoria.setLoginId(loginId);
-                auditoria.setEhAdmin(ehAdmin);
-                auditoria.setIdLocalEmpresa(idLocal);
-                auditoria.setTipoOperacao("POSSIVEL_TENTATIVA_INVASAO");
-                auditoria.setTabelaAfetada("SISTEMA");
-                auditoria.setDataHora(LocalDateTime.now());
-                auditoriaRepository.save(auditoria);
-                
-                // Reset após registrar para não floodar o banco a cada nova tentativa?
-                // Ou mantém para registrar a cada 10?
-                // Vou resetar para registrar novamente apenas após mais 10.
-                loginAttempts.remove(username);
-            }
+            handleInvasionAttempt(rawUsername);
         }
     }
+
+    private void handleInvasionAttempt(String rawUsername) {
+        String[] parts = rawUsername.split("/");
+        String loginPublicoEmpresaPart = parts[0];
+        String loginUsuarioPart = parts.length == 2 ? parts[1] : null;
+
+        if (parts.length > 2) return;
+
+        Optional<Empresa> empOpt = resolveEmpresa(loginPublicoEmpresaPart, parts.length);
+        
+        empOpt.ifPresent(empresa -> {
+            TargetInfo target = resolveTarget(empresa, loginUsuarioPart);
+            try {
+                Auditoria auditoria = auditoriaMapper.toEntityInvasao(empresa, target.loginId(), target.ehAdmin(), target.idLocal());
+                auditoriaRepository.save(auditoria);
+                loginAttempts.remove(rawUsername);
+            } catch (Exception e) {
+                logger.error("Erro ao salvar auditoria de tentativa de invasão", e);
+            }
+        });
+    }
+
+    private Optional<Empresa> resolveEmpresa(String loginPart, int partsLength) {
+        Optional<Empresa> empOpt = empresaRepository.findByLoginPublico(loginPart);
+        if (empOpt.isEmpty() && partsLength == 1) {
+            empOpt = empresaRepository.findByLoginMaster(loginPart);
+        }
+        return empOpt;
+    }
+
+    private TargetInfo resolveTarget(Empresa empresa, String loginUsuarioPart) {
+        if (loginUsuarioPart == null) {
+            return new TargetInfo(empresa.getId(), true, 0);
+        }
+
+        if (empresa.getLoginMaster().equals(loginUsuarioPart)) {
+            return new TargetInfo(empresa.getId(), true, 0);
+        }
+
+        return usuarioRepository.findByLoginAndEmpresaId(loginUsuarioPart, empresa.getId())
+                .map(u -> new TargetInfo(u.getId(), false, u.getIdLocalEmpresa()))
+                .orElse(new TargetInfo(empresa.getId(), true, 0));
+    }
+
+    private record TargetInfo(Long loginId, boolean ehAdmin, Integer idLocal) {}
 }

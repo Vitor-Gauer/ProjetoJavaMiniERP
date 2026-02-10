@@ -3,6 +3,7 @@ package ProjetoJava.DonodoNegocio.repository;
 import ProjetoJava.DonodoNegocio.model.Estoque;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,5 +17,5 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
     Optional<Estoque> findByEmpresaIdAndIdLocalEmpresa(Long empresaId, Integer idLocalEmpresa);
 
     @Query("SELECT MAX(e.idLocalEmpresa) FROM Estoque e WHERE e.empresa.id = :empresaId")
-    Integer findMaxIdLocalByEmpresaId(Long empresaId);
+    Integer findMaxIdLocalByEmpresaId(@Param("empresaId") Long empresaId);
 }

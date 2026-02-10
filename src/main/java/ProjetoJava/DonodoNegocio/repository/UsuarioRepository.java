@@ -3,6 +3,7 @@ package ProjetoJava.DonodoNegocio.repository;
 import ProjetoJava.DonodoNegocio.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,9 +18,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByLoginAndEmpresaId(String login, Long empresaId);
 
-    // Busca global por login (assume unicidade ou retorna erro se duplicado)
-    Optional<Usuario> findByLogin(String login);
-
     @Query("SELECT MAX(u.idLocalEmpresa) FROM Usuario u WHERE u.empresa.id = :empresaId")
-    Integer findMaxIdLocalByEmpresaId(Long empresaId);
+    Integer findMaxIdLocalByEmpresaId(@Param("empresaId") Long empresaId);
 }

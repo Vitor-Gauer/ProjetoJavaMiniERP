@@ -2,6 +2,7 @@ package ProjetoJava.DonodoNegocio.security;
 
 import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Usuario;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,21 +10,37 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
+@Getter
 public class CustomUserDetails implements UserDetails {
 
-    private final Empresa empresa;
-    private final Usuario usuario;
+    private final Long empresaId;
+    private final Long usuarioId;
+    private final Integer idLocalEmpresa;
+    private final String username;
+    private final String password;
+    private final boolean isEmpresa;
+    private final boolean isAtivo;
     private final Collection<? extends GrantedAuthority> authorities;
 
     public CustomUserDetails(Empresa empresa) {
-        this.empresa = empresa;
-        this.usuario = null;
+        this.empresaId = empresa.getId();
+        this.usuarioId = null;
+        this.idLocalEmpresa = null;
+        this.username = empresa.getLoginMaster();
+        this.password = empresa.getSenhaHashAdmin();
+        this.isEmpresa = true;
+        this.isAtivo = true;
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
 
     public CustomUserDetails(Usuario usuario) {
-        this.usuario = usuario;
-        this.empresa = usuario.getEmpresa(); // Usuário pertence a uma empresa
+        this.empresaId = usuario.getEmpresa().getId();
+        this.usuarioId = usuario.getId();
+        this.idLocalEmpresa = usuario.getIdLocalEmpresa();
+        this.username = usuario.getLogin();
+        this.password = usuario.getSenhaHash();
+        this.isEmpresa = false;
+        this.isAtivo = usuario.isAtivo();
         
         String role = "ROLE_OPERADOR"; // Default
         if (usuario.getTipoUsuario() != null) {
@@ -36,22 +53,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public Long getId() {
-        if (usuario != null) {
-            return usuario.getId();
-        }
-        return empresa.getId();
-    }
-
-    public boolean isEmpresa() {
-        return usuario == null;
-    }
-
-    public Empresa getEmpresaEntity() {
-        return empresa;
-    }
-
-    public Usuario getUsuarioEntity() {
-        return usuario;
+        return isEmpresa ? empresaId : usuarioId;
     }
 
     @Override
@@ -61,18 +63,12 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        if (usuario != null) {
-            return usuario.getSenhaHash();
-        }
-        return empresa.getSenhaHashAdmin();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        if (usuario != null) {
-            return usuario.getLogin();
-        }
-        return empresa.getLoginMaster();
+        return username;
     }
 
     @Override
@@ -92,9 +88,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        if (usuario != null) {
-            return usuario.isAtivo();
-        }
-        return true; // Empresa sempre ativa por enquanto
+        return isAtivo;
     }
 }

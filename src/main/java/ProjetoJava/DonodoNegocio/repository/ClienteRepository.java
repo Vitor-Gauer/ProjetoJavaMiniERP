@@ -3,6 +3,7 @@ package ProjetoJava.DonodoNegocio.repository;
 import ProjetoJava.DonodoNegocio.model.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,5 +17,5 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByEmpresaIdAndIdLocalEmpresa(Long empresaId, Integer idLocalEmpresa);
 
     @Query("SELECT MAX(c.idLocalEmpresa) FROM Cliente c WHERE c.empresa.id = :empresaId")
-    Integer findMaxIdLocalByEmpresaId(Long empresaId);
+    Integer findMaxIdLocalByEmpresaId(@Param("empresaId") Long empresaId);
 }
