@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 
     Optional<Empresa> findByLoginMaster(String loginMaster);
+    
+    Optional<Empresa> findByLoginPublico(String loginPublico);
 }
