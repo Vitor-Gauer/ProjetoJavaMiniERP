@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +66,30 @@ public class RelatorioService {
     private List<TransacaoDTO> getTransacoesPorTipo(Long empresaId, String tipo) {
         return transacaoRepository.findByEmpresaIdAndTipoTransacaoNome(empresaId, tipo).stream()
                 .map(transacaoMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
+    public List<TransacaoDTO> getVendas(Long empresaId) {
+        return getTransacoesPorTipo(empresaId, "Venda");
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
+    public List<TransacaoDTO> getCompras(Long empresaId) {
+        return getTransacoesPorTipo(empresaId, "Compra");
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
+    public List<TransacaoDTO> getTransferencias(Long empresaId) {
+        return getTransacoesPorTipo(empresaId, "Transferencia");
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
+    public List<TransacaoDTO> getAjustes(Long empresaId) {
+        return getTransacoesPorTipo(empresaId, "Ajuste");
     }
 }
