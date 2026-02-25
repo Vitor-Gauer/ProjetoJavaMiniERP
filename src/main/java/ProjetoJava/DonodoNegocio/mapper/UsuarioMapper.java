@@ -4,14 +4,14 @@ import ProjetoJava.DonodoNegocio.dto.UsuarioDTO;
 import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Usuario;
 import ProjetoJava.DonodoNegocio.repository.TipoUsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UsuarioMapper {
 
-    @Autowired
-    private TipoUsuarioRepository tipoUsuarioRepository;
+    private final TipoUsuarioRepository tipoUsuarioRepository;
 
     public Usuario toEntity(UsuarioDTO dto) {
         if (dto == null) {

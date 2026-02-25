@@ -5,17 +5,15 @@ import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Transacao;
 import ProjetoJava.DonodoNegocio.repository.TipoTransacaoRepository;
 import ProjetoJava.DonodoNegocio.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TransacaoMapper {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private TipoTransacaoRepository tipoTransacaoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final TipoTransacaoRepository tipoTransacaoRepository;
 
     public Transacao toEntity(TransacaoDTO dto) {
         if (dto == null) {

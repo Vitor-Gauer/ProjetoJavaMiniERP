@@ -5,17 +5,15 @@ import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Produto;
 import ProjetoJava.DonodoNegocio.repository.EstoqueRepository;
 import ProjetoJava.DonodoNegocio.repository.FornecedorRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProdutoMapper {
 
-    @Autowired
-    private EstoqueRepository estoqueRepository;
-
-    @Autowired
-    private FornecedorRepository fornecedorRepository;
+    private final EstoqueRepository estoqueRepository;
+    private final FornecedorRepository fornecedorRepository;
 
     public Produto toEntity(ProdutoDTO dto) {
         if (dto == null) {

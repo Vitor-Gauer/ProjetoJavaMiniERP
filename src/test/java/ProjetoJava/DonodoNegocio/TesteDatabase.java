@@ -3,79 +3,94 @@ package ProjetoJava.DonodoNegocio;
 import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.TipoUsuario;
 import ProjetoJava.DonodoNegocio.model.Usuario;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureTestEntityManager;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@DataJPATest
-@SpringBootTest
+@DataJpaTest
 @ActiveProfiles("dev")
-@Transactional
-@AutoConfigureTestEntityManager
-class TesteDatabase {
+@DisplayName("Testes de Persistência para a Entidade Usuario")
+class UsuarioPersistenceTest {
 
     @Autowired
     private TestEntityManager entityManager;
 
-    @Test
-    void deveConectarAoBDeRealizarOperacoesCRUD() {
-        // --- Setup: Criar dependências ---
-        Empresa empresa = new Empresa();
-        empresa.setNome("Empresa Teste DB");
-        empresa.setLoginMaster("master_teste_db");
+    private Empresa empresa;
+    private TipoUsuario tipoUsuario;
+
+    @BeforeEach
+    void setUp() {
+        empresa = new Empresa();
+        empresa.setNome("Empresa Teste");
+        empresa.setLoginMaster("master_teste");
         empresa.setSenhaHashAdmin("admin_hash");
         empresa.setSenhaHashPublica("public_hash");
         entityManager.persist(empresa);
 
-        TipoUsuario tipo = new TipoUsuario();
-        tipo.setEmpresa(empresa);
-        tipo.setCargo("Admin Teste DB");
-        tipo.setIdLocalEmpresa(1);
-        entityManager.persist(tipo);
+        tipoUsuario = new TipoUsuario();
+        tipoUsuario.setEmpresa(empresa);
+        tipoUsuario.setCargo("Admin Teste");
+        tipoUsuario.setIdLocalEmpresa(1);
+        entityManager.persist(tipoUsuario);
+    }
 
-        // --- 1. Insert ---
+    private Usuario criarUsuarioPadrao() {
         Usuario novoUsuario = new Usuario();
-        novoUsuario.setLogin("db_user");
-        novoUsuario.setSenhaHash("hash_inicial_db");
+        novoUsuario.setLogin("user_test");
+        novoUsuario.setSenhaHash("some_hash");
         novoUsuario.setEmpresa(empresa);
-        novoUsuario.setTipoUsuario(tipo);
+        novoUsuario.setTipoUsuario(tipoUsuario);
         novoUsuario.setIdLocalEmpresa(2);
-        
-        // persistAndFlush: Persiste e sincroniza com o banco imediatamente
-        Usuario usuarioInserido = entityManager.persistAndFlush(novoUsuario);
-        
-        // Limpa o contexto para garantir que o próximo find faça um SELECT real
+        return novoUsuario;
+    }
+
+    @Test
+    @DisplayName("Deve salvar um novo usuário no banco de dados")
+    void deveSalvarUsuarioComSucesso() {
+        Usuario novoUsuario = criarUsuarioPadrao();
+
+        Usuario usuarioSalvo = entityManager.persistAndFlush(novoUsuario);
+
+        assertNotNull(usuarioSalvo.getId(), "O ID do usuário não deveria ser nulo após a persistência.");
+    }
+
+    @Test
+    @DisplayName("Deve encontrar um usuário pelo seu ID")
+    void deveEncontrarUsuarioPorId() {
+        Usuario novoUsuario = criarUsuarioPadrao();
+        Long usuarioId = entityManager.persistAndGetId(novoUsuario, Long.class);
         entityManager.clear();
 
-        assertNotNull(usuarioInserido.getId(), "O ID do usuário não deveria ser nulo após o insert.");
+        Usuario usuarioEncontrado = entityManager.find(Usuario.class, usuarioId);
 
-        // --- 2. Select (após Insert) ---
-        Usuario usuarioSelecionado1 = entityManager.find(Usuario.class, usuarioInserido.getId());
+        assertNotNull(usuarioEncontrado, "O usuário deveria ser encontrado pelo ID.");
+        assertEquals("user_test", usuarioEncontrado.getLogin());
+    }
 
-        // --- 3. Verificação (após Insert) ---
-        assertNotNull(usuarioSelecionado1, "Usuário deveria ser encontrado no BD após o insert.");
-        assertEquals("db_user", usuarioSelecionado1.getLogin());
-        assertEquals(2, usuarioSelecionado1.getIdLocalEmpresa());
+    @Test
+    @DisplayName("Deve atualizar o login de um usuário existente")
+    void deveAtualizarLoginDoUsuario() {
+        Usuario novoUsuario = criarUsuarioPadrao();
+        Long usuarioId = entityManager.persistAndGetId(novoUsuario, Long.class);
+        entityManager.detach(novoUsuario); // Garante que estamos trabalhando com uma entidade gerenciada
 
-        // --- 4. Update ---
-        usuarioSelecionado1.setLogin("db_user_atualizado");
-        
-        // Flush força o update no banco
+        Usuario usuarioParaAtualizar = entityManager.find(Usuario.class, usuarioId);
+        assertNotNull(usuarioParaAtualizar);
+
+        usuarioParaAtualizar.setLogin("user_test_updated");
         entityManager.flush();
         entityManager.clear();
 
-        // --- 5. Select (após Update) ---
-        Usuario usuarioSelecionado2 = entityManager.find(Usuario.class, usuarioInserido.getId());
+        Usuario usuarioAtualizado = entityManager.find(Usuario.class, usuarioId);
 
-        // --- 6. Verificação (após Update) ---
-        assertNotNull(usuarioSelecionado2, "Usuário deveria ser encontrado no BD após o update.");
-        assertEquals("db_user_atualizado", usuarioSelecionado2.getLogin(), "O login do usuário não foi atualizado corretamente no BD.");
+        assertNotNull(usuarioAtualizado, "O usuário atualizado não deveria ser nulo.");
+        assertEquals("user_test_updated", usuarioAtualizado.getLogin(), "O login do usuário deveria ter sido atualizado.");
     }
 }
