@@ -4,14 +4,16 @@ import ProjetoJava.DonodoNegocio.dto.UsuarioDTO;
 import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Usuario;
 import ProjetoJava.DonodoNegocio.repository.TipoUsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UsuarioMapper {
 
-    @Autowired
-    private TipoUsuarioRepository tipoUsuarioRepository;
+    private final TipoUsuarioRepository tipoUsuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Usuario toEntity(UsuarioDTO dto) {
         if (dto == null) {
@@ -21,9 +23,10 @@ public class UsuarioMapper {
         entity.setIdLocalEmpresa(dto.getIdLocalEmpresa() != null ? dto.getIdLocalEmpresa().intValue() : null);
         entity.setLogin(dto.getLogin());
         entity.setAtivo(dto.isAtivo());
-        
-        // Mapeando senha (crua) para o campo de hash, conforme solicitado.
-        entity.setSenhaHash(dto.getSenha());
+
+        if (dto.getSenha() != null) {
+            entity.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+        }
 
         if (dto.getEmpresaId() != null) {
             Empresa empresa = new Empresa();
@@ -48,7 +51,6 @@ public class UsuarioMapper {
         dto.setIdLocalEmpresa(entity.getIdLocalEmpresa() != null ? entity.getIdLocalEmpresa().longValue() : null);
         dto.setLogin(entity.getLogin());
         dto.setAtivo(entity.isAtivo());
-        // Senha não retornada
 
         if (entity.getTipoUsuario() != null && entity.getTipoUsuario().getIdLocalEmpresa() != null) {
             dto.setTipoUsuarioId(entity.getTipoUsuario().getIdLocalEmpresa().longValue());
@@ -66,11 +68,11 @@ public class UsuarioMapper {
         }
         entity.setLogin(dto.getLogin());
         entity.setAtivo(dto.isAtivo());
-        
-        if (dto.getSenha() != null) {
-            entity.setSenhaHash(dto.getSenha());
+
+        if (dto.getSenha() != null && !dto.getSenha().isEmpty()) {
+            entity.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
         }
-        
+
         if (dto.getEmpresaId() != null) {
             if (entity.getEmpresa() == null || !entity.getEmpresa().getId().equals(dto.getEmpresaId())) {
                 Empresa empresa = new Empresa();

@@ -5,10 +5,10 @@ import ProjetoJava.DonodoNegocio.model.TipoTransacao;
 import ProjetoJava.DonodoNegocio.repository.EmpresaRepository;
 import ProjetoJava.DonodoNegocio.repository.TipoTransacaoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,37 +20,42 @@ public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final TipoTransacaoRepository tipoTransacaoRepository;
 
-    private record TipoTransacaoConfig(String nome, boolean recorrente, boolean recebimento) {}
+    private record ConfiguracaoTipoTransacao(String nome, boolean recorrente, boolean recebimento) {}
+
+    private static final List<ConfiguracaoTipoTransacao> CONFIGURACOES_INICIAIS = List.of(
+            // Financeiro
+            new ConfiguracaoTipoTransacao("Despesa", true, false),
+            new ConfiguracaoTipoTransacao("Receita", true, true),
+            new ConfiguracaoTipoTransacao("Devendo", false, false),
+            new ConfiguracaoTipoTransacao("Quitado", false, true),
+            new ConfiguracaoTipoTransacao("Compra", false, false),
+            new ConfiguracaoTipoTransacao("Venda", false, true),
+            // Estoque
+            new ConfiguracaoTipoTransacao("Entrada Estoque", true, true),
+            new ConfiguracaoTipoTransacao("Saida Estoque", true, false),
+            new ConfiguracaoTipoTransacao("Compra Estoque", false, true),
+            new ConfiguracaoTipoTransacao("Venda Estoque", false, false)
+    );
 
     @Transactional
     public void inicializarTiposTransacao(Empresa empresa) {
-        Integer currentMaxId = tipoTransacaoRepository.findMaxIdLocalByEmpresaId(empresa.getId());
-        if (currentMaxId != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "A empresa com ID " + empresa.getId() + " já possui tipos de transação inicializados.");
-        }
+        validarInicializacao(empresa);
 
-        List<TipoTransacaoConfig> configs = List.of(
-                // Financeiro
-                new TipoTransacaoConfig("Despesa", true, false),
-                new TipoTransacaoConfig("Receita", true, true),
-                new TipoTransacaoConfig("Devendo", false, false),
-                new TipoTransacaoConfig("Quitado", false, true),
-                new TipoTransacaoConfig("Compra", false, false),
-                new TipoTransacaoConfig("Venda", false, true),
-                // Estoque
-                new TipoTransacaoConfig("Entrada Estoque", true, true),
-                new TipoTransacaoConfig("Saida Estoque", true, false),
-                new TipoTransacaoConfig("Compra Estoque", false, true),
-                new TipoTransacaoConfig("Venda Estoque", false, false)
-        );
-
-        int nextId = 1;
-        for (TipoTransacaoConfig config : configs) {
-            criarTipo(empresa, config, nextId++);
+        int proximoIdLocal = 1;
+        for (ConfiguracaoTipoTransacao config : CONFIGURACOES_INICIAIS) {
+            criarESalvarTipoTransacao(empresa, config, proximoIdLocal++);
         }
     }
 
-    private void criarTipo(Empresa empresa, TipoTransacaoConfig config, int idLocal) {
+    private void validarInicializacao(Empresa empresa) {
+        Integer maxIdAtual = tipoTransacaoRepository.findMaxIdLocalByEmpresaId(empresa.getId());
+        if (maxIdAtual != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                String.format("A empresa com ID %d já possui tipos de transação inicializados.", empresa.getId()));
+        }
+    }
+
+    private void criarESalvarTipoTransacao(Empresa empresa, ConfiguracaoTipoTransacao config, int idLocal) {
         TipoTransacao tipo = new TipoTransacao();
         tipo.setEmpresa(empresa);
         tipo.setIdLocalEmpresa(idLocal);

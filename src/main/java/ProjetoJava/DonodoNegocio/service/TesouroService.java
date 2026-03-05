@@ -21,30 +21,31 @@ public class TesouroService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public TesouroDTO salvar(TesouroDTO dto) {
-        Tesouro entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Tesouro> existing = tesouroRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                tesouroMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = tesouroMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = tesouroMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoTesouro(dto);
         }
 
-        if (isNew) {
-            Integer maxId = tesouroRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Tesouro> tesouroOpt = tesouroRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return tesouroOpt
+                .map(tesouro -> atualizarTesouroExistente(dto, tesouro))
+                .orElseGet(() -> criarNovoTesouro(dto));
+    }
 
-        entity = tesouroRepository.save(entity);
-        return tesouroMapper.toDTO(entity);
+    private TesouroDTO criarNovoTesouro(TesouroDTO dto) {
+        Tesouro novoTesouro = tesouroMapper.toEntity(dto);
+        
+        Integer maxId = tesouroRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoTesouro.setIdLocalEmpresa(proximoId);
+        
+        Tesouro tesouroSalvo = tesouroRepository.save(novoTesouro);
+        return tesouroMapper.toDTO(tesouroSalvo);
+    }
+
+    private TesouroDTO atualizarTesouroExistente(TesouroDTO dto, Tesouro tesouro) {
+        tesouroMapper.updateEntityFromDTO(dto, tesouro);
+        Tesouro tesouroAtualizado = tesouroRepository.save(tesouro);
+        return tesouroMapper.toDTO(tesouroAtualizado);
     }
 }

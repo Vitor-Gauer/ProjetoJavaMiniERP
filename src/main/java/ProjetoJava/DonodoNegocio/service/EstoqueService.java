@@ -21,30 +21,31 @@ public class EstoqueService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public EstoqueDTO salvar(EstoqueDTO dto) {
-        Estoque entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Estoque> existing = estoqueRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                estoqueMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = estoqueMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = estoqueMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoEstoque(dto);
         }
 
-        if (isNew) {
-            Integer maxId = estoqueRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Estoque> estoqueOpt = estoqueRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return estoqueOpt
+                .map(estoque -> atualizarEstoqueExistente(dto, estoque))
+                .orElseGet(() -> criarNovoEstoque(dto));
+    }
 
-        entity = estoqueRepository.save(entity);
-        return estoqueMapper.toDTO(entity);
+    private EstoqueDTO criarNovoEstoque(EstoqueDTO dto) {
+        Estoque novoEstoque = estoqueMapper.toEntity(dto);
+        
+        Integer maxId = estoqueRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoEstoque.setIdLocalEmpresa(proximoId);
+        
+        Estoque estoqueSalvo = estoqueRepository.save(novoEstoque);
+        return estoqueMapper.toDTO(estoqueSalvo);
+    }
+
+    private EstoqueDTO atualizarEstoqueExistente(EstoqueDTO dto, Estoque estoque) {
+        estoqueMapper.updateEntityFromDTO(dto, estoque);
+        Estoque estoqueAtualizado = estoqueRepository.save(estoque);
+        return estoqueMapper.toDTO(estoqueAtualizado);
     }
 }

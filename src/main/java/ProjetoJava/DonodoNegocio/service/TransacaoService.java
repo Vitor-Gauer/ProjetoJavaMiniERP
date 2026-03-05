@@ -24,53 +24,70 @@ public class TransacaoService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERADOR')")
     public TransacaoDTO salvar(TransacaoDTO dto) {
-        Transacao entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Transacao> existing = transacaoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                transacaoMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = transacaoMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = transacaoMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovaTransacao(dto);
         }
 
-        if (isNew) {
-            Integer maxId = transacaoRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Transacao> transacaoOpt = transacaoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return transacaoOpt
+                .map(transacao -> atualizarTransacaoExistente(dto, transacao))
+                .orElseGet(() -> criarNovaTransacao(dto));
+    }
 
-        entity = transacaoRepository.save(entity);
-        return transacaoMapper.toDTO(entity);
+    private TransacaoDTO criarNovaTransacao(TransacaoDTO dto) {
+        Transacao novaTransacao = transacaoMapper.toEntity(dto);
+        novaTransacao.setIdLocalEmpresa(gerarProximoIdLocal(dto.getEmpresaId()));
+        
+        Transacao transacaoSalva = transacaoRepository.save(novaTransacao);
+        return transacaoMapper.toDTO(transacaoSalva);
+    }
+
+    private TransacaoDTO atualizarTransacaoExistente(TransacaoDTO dto, Transacao transacao) {
+        transacaoMapper.updateEntityFromDTO(dto, transacao);
+        Transacao transacaoAtualizada = transacaoRepository.save(transacao);
+        return transacaoMapper.toDTO(transacaoAtualizada);
+    }
+
+    private Integer gerarProximoIdLocal(Long empresaId) {
+        Integer maxId = transacaoRepository.findMaxIdLocalByEmpresaId(empresaId);
+        return (maxId == null) ? 1 : maxId + 1;
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
     public void resolver(Long empresaId, Integer idLocalEmpresa) {
-        Transacao transacao = transacaoRepository.findByEmpresaIdAndIdLocalEmpresa(empresaId, idLocalEmpresa)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transação não encontrada"));
+        Transacao transacao = buscarTransacaoOuLancarExcecao(empresaId, idLocalEmpresa);
 
         if (transacao.isFoiResolvido()) {
             return;
         }
 
+        marcarComoResolvida(transacao);
+        verificarEGerarRecorrencia(transacao);
+    }
+
+    private Transacao buscarTransacaoOuLancarExcecao(Long empresaId, Integer idLocalEmpresa) {
+        return transacaoRepository.findByEmpresaIdAndIdLocalEmpresa(empresaId, idLocalEmpresa)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                    String.format("Transação não encontrada para empresa %d e ID local %d", empresaId, idLocalEmpresa)));
+    }
+
+    private void marcarComoResolvida(Transacao transacao) {
         transacao.setFoiResolvido(true);
         transacao.setDataResolucao(LocalDateTime.now());
         transacaoRepository.save(transacao);
+    }
 
-        if (transacao.getTipoTransacao().isEhRecorrente() && transacao.getIntervaloCobranca() != null && transacao.getIntervaloCobranca() > 0) {
-            criarProximaRecorrencia(transacao);
+    private void verificarEGerarRecorrencia(Transacao transacao) {
+        if (transacao.getTipoTransacao().isEhRecorrente() && 
+            transacao.getIntervaloCobranca() != null && 
+            transacao.getIntervaloCobranca() > 0) {
+            gerarProximaTransacaoRecorrente(transacao);
         }
     }
 
-    private void criarProximaRecorrencia(Transacao original) {
+    private void gerarProximaTransacaoRecorrente(Transacao original) {
         Transacao nova = new Transacao();
         nova.setEmpresa(original.getEmpresa());
         nova.setUsuario(original.getUsuario());
@@ -81,13 +98,9 @@ public class TransacaoService {
         nova.setIntervaloCobranca(original.getIntervaloCobranca());
         
         nova.setDataCriacao(original.getDataCriacao().plusDays(original.getIntervaloCobranca()));
-        
         nova.setFoiResolvido(false);
         nova.setDataResolucao(null);
-
-        Integer maxId = transacaoRepository.findMaxIdLocalByEmpresaId(original.getEmpresa().getId());
-        int nextId = (maxId == null) ? 1 : maxId + 1;
-        nova.setIdLocalEmpresa(nextId);
+        nova.setIdLocalEmpresa(gerarProximoIdLocal(original.getEmpresa().getId()));
 
         transacaoRepository.save(nova);
     }

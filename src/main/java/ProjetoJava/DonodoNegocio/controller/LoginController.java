@@ -1,25 +1,21 @@
 package ProjetoJava.DonodoNegocio.controller;
 
-import ProjetoJava.DonodoNegocio.model.Empresa;
-import ProjetoJava.DonodoNegocio.model.Usuario;
-import ProjetoJava.DonodoNegocio.repository.EmpresaRepository;
-import ProjetoJava.DonodoNegocio.repository.UsuarioRepository;
+import ProjetoJava.DonodoNegocio.config.AppConstants;
+import ProjetoJava.DonodoNegocio.dto.LoginDTO;
+import ProjetoJava.DonodoNegocio.security.AuthResponse;
 import ProjetoJava.DonodoNegocio.security.CustomUserDetails;
+import ProjetoJava.DonodoNegocio.service.AuthService;
+import ProjetoJava.DonodoNegocio.service.LoginAttemptService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
-import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Optional;
 
@@ -27,111 +23,105 @@ import java.util.Optional;
 @RequestMapping("/login")
 @RequiredArgsConstructor
 public class LoginController {
-
-    private static final String REDIRECT_DASHBOARD = "redirect:/dashboard";
-    private static final String REDIRECT_LOGIN = "redirect:/login";
-    private static final String REDIRECT_LOGIN_USUARIO = "redirect:/login/usuario";
-    private static final String ATTR_EMPRESA_ID = "empresaId";
-    private static final String ATTR_EMPRESA_NOME = "empresaNome";
-    private static final String VIEW_LOGIN_EMPRESA = "login-empresa";
-    private static final String VIEW_LOGIN_USUARIO = "login-usuario";
-
-    private final EmpresaRepository empresaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final ApplicationEventPublisher eventPublisher;
+    private static final String ERROR = "error";
+    private final AuthService authService;
+    private final LoginAttemptService loginAttemptService;
 
     @GetMapping
-    public String loginEmpresaPage() {
-        return VIEW_LOGIN_EMPRESA;
+    public String loginEmpresaPage(Model model) {
+        model.addAttribute("loginDto", new LoginDTO());
+        return AppConstants.VIEW_LOGIN_EMPRESA;
     }
 
     @PostMapping("/empresa")
-    public String loginEmpresa(@RequestParam String login, @RequestParam String senha, HttpSession session, Model model) {
-        Optional<Empresa> empresaOpt = empresaRepository.findByLoginPublico(login);
-        
-        boolean isMaster = false;
-        if (empresaOpt.isEmpty()) {
-            empresaOpt = empresaRepository.findByLoginMaster(login);
-            isMaster = true;
+    public String loginEmpresa(@Valid @ModelAttribute("loginDto") LoginDTO loginDto,
+                               BindingResult bindingResult,
+                               HttpSession session,
+                               Model model) {
+
+        if (bindingResult.hasErrors()) {
+            return AppConstants.VIEW_LOGIN_EMPRESA;
         }
 
-        if (empresaOpt.isPresent()) {
-            Empresa empresa = empresaOpt.get();
-            
-            if (isMaster) {
-                if (passwordEncoder.matches(senha, empresa.getSenhaHashAdmin())) {
-                    autenticarUsuario(new CustomUserDetails(empresa));
-                    return REDIRECT_DASHBOARD;
-                }
+        String rateLimitKey = "empresa:" + loginDto.getLogin();
+        if (loginAttemptService.isBlocked(rateLimitKey)) {
+            model.addAttribute(ERROR, "Muitas tentativas de login. Tente novamente em 10 segundos.");
+            return AppConstants.VIEW_LOGIN_EMPRESA;
+        }
+
+        Optional<AuthResponse> authResponseOpt = authService.authenticateEmpresa(
+                loginDto.getLogin(),
+                loginDto.getSenha()
+        );
+
+        if (authResponseOpt.isPresent()) {
+            AuthResponse authResponse = authResponseOpt.get();
+
+            if (authResponse.isMasterLogin()) {
+                authService.definirAutenticacaoNoContexto(authResponse.getUserDetails());
+                return AppConstants.REDIRECT_DASHBOARD;
             } else {
-                if (passwordEncoder.matches(senha, empresa.getSenhaHashPublica())) {
-                    session.setAttribute(ATTR_EMPRESA_ID, empresa.getId());
-                    session.setAttribute(ATTR_EMPRESA_NOME, empresa.getNome());
-                    return REDIRECT_LOGIN_USUARIO;
-                }
+                session.setAttribute(AppConstants.ATTR_EMPRESA_ID, authResponse.getUserDetails().getEmpresaId());
+                session.setAttribute(AppConstants.ATTR_EMPRESA_NOME, authResponse.getEmpresaNome());
+                return AppConstants.REDIRECT_LOGIN_USUARIO;
             }
         }
 
-        model.addAttribute("error", "Empresa ou senha inválidos");
-        dispararEventoFalha(login);
-        return VIEW_LOGIN_EMPRESA;
+        model.addAttribute(ERROR, "Empresa ou senha inválidos");
+        return AppConstants.VIEW_LOGIN_EMPRESA;
     }
 
     @GetMapping("/usuario")
     public String loginUsuarioPage(HttpSession session, Model model) {
-        Long empresaId = (Long) session.getAttribute(ATTR_EMPRESA_ID);
+        Long empresaId = (Long) session.getAttribute(AppConstants.ATTR_EMPRESA_ID);
         if (empresaId == null) {
-            return REDIRECT_LOGIN;
+            return AppConstants.REDIRECT_LOGIN;
         }
-        model.addAttribute(ATTR_EMPRESA_NOME, session.getAttribute(ATTR_EMPRESA_NOME));
-        return VIEW_LOGIN_USUARIO;
+
+        model.addAttribute("loginDto", new LoginDTO());
+        model.addAttribute(AppConstants.ATTR_EMPRESA_NOME, session.getAttribute(AppConstants.ATTR_EMPRESA_NOME));
+        return AppConstants.VIEW_LOGIN_USUARIO;
     }
 
     @PostMapping("/usuario")
-    public String loginUsuario(@RequestParam String login, @RequestParam String senha, HttpSession session, Model model) {
-        Long empresaId = (Long) session.getAttribute(ATTR_EMPRESA_ID);
+    public String loginUsuario(@Valid @ModelAttribute("loginDto") LoginDTO loginDto,
+                               BindingResult bindingResult,
+                               HttpSession session,
+                               Model model) {
+
+        Long empresaId = (Long) session.getAttribute(AppConstants.ATTR_EMPRESA_ID);
         if (empresaId == null) {
-            return REDIRECT_LOGIN;
+            return AppConstants.REDIRECT_LOGIN;
         }
 
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByLoginAndEmpresaId(login, empresaId);
-        
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            if (passwordEncoder.matches(senha, usuario.getSenhaHash())) {
-                autenticarUsuario(new CustomUserDetails(usuario));
-                session.removeAttribute(ATTR_EMPRESA_ID);
-                return REDIRECT_DASHBOARD;
-            }
-        } else {
-            Optional<Empresa> empresaOpt = empresaRepository.findById(empresaId);
-            if (empresaOpt.isPresent()) {
-                Empresa empresa = empresaOpt.get();
-                if (empresa.getLoginMaster().equals(login) && passwordEncoder.matches(senha, empresa.getSenhaHashAdmin())) {
-                    autenticarUsuario(new CustomUserDetails(empresa));
-                    session.removeAttribute(ATTR_EMPRESA_ID);
-                    return REDIRECT_DASHBOARD;
-                }
-            }
+        if (bindingResult.hasErrors()) {
+            model.addAttribute(AppConstants.ATTR_EMPRESA_NOME, session.getAttribute(AppConstants.ATTR_EMPRESA_NOME));
+            return AppConstants.VIEW_LOGIN_USUARIO;
         }
 
-        model.addAttribute("error", "Usuário ou senha inválidos");
-        Optional<Empresa> emp = empresaRepository.findById(empresaId);
-        String prefix = emp.map(Empresa::getLoginPublico).orElse("UNKNOWN");
-        dispararEventoFalha(prefix + "/" + login);
-        
-        return VIEW_LOGIN_USUARIO;
-    }
+        String rateLimitKey = "usuario:" + empresaId + ":" + loginDto.getLogin();
+        if (loginAttemptService.isBlocked(rateLimitKey)) {
+            model.addAttribute(ERROR, "Muitas tentativas de login. Tente novamente em 10 segundos.");
+            model.addAttribute(AppConstants.ATTR_EMPRESA_NOME, session.getAttribute(AppConstants.ATTR_EMPRESA_NOME));
+            return AppConstants.VIEW_LOGIN_USUARIO;
+        }
 
-    private void autenticarUsuario(CustomUserDetails userDetails) {
-        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        eventPublisher.publishEvent(new AuthenticationSuccessEvent(auth));
-    }
+        Optional<CustomUserDetails> userDetailsOpt = authService.authenticateUsuario(
+                loginDto.getLogin(),
+                loginDto.getSenha(),
+                empresaId
+        );
 
-    private void dispararEventoFalha(String username) {
-        Authentication auth = new UsernamePasswordAuthenticationToken(username, "hidden");
-        eventPublisher.publishEvent(new AuthenticationFailureBadCredentialsEvent(auth, new org.springframework.security.authentication.BadCredentialsException("Falha manual")));
+        if (userDetailsOpt.isPresent()) {
+            authService.definirAutenticacaoNoContexto(userDetailsOpt.get());
+
+            session.removeAttribute(AppConstants.ATTR_EMPRESA_ID);
+            session.removeAttribute(AppConstants.ATTR_EMPRESA_NOME);
+            return AppConstants.REDIRECT_DASHBOARD;
+        }
+
+        model.addAttribute(ERROR, "Usuário ou senha inválidos");
+        model.addAttribute(AppConstants.ATTR_EMPRESA_NOME, session.getAttribute(AppConstants.ATTR_EMPRESA_NOME));
+        return AppConstants.VIEW_LOGIN_USUARIO;
     }
 }

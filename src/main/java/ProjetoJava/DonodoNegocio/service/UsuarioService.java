@@ -23,35 +23,40 @@ public class UsuarioService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public UsuarioDTO salvar(UsuarioDTO dto) {
-        Usuario entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Usuario> existing = usuarioRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                usuarioMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = usuarioMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = usuarioMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoUsuario(dto);
         }
 
-        if (isNew) {
-            Integer maxId = usuarioRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return usuarioOpt
+                .map(usuario -> atualizarUsuarioExistente(dto, usuario))
+                .orElseGet(() -> criarNovoUsuario(dto));
+    }
 
-        // Hash da senha
+    private UsuarioDTO criarNovoUsuario(UsuarioDTO dto) {
+        Usuario novoUsuario = usuarioMapper.toEntity(dto);
+        
+        Integer maxId = usuarioRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoUsuario.setIdLocalEmpresa(proximoId);
+        
+        processarSenha(dto, novoUsuario);
+        
+        Usuario usuarioSalvo = usuarioRepository.save(novoUsuario);
+        return usuarioMapper.toDTO(usuarioSalvo);
+    }
+
+    private UsuarioDTO atualizarUsuarioExistente(UsuarioDTO dto, Usuario usuario) {
+        usuarioMapper.updateEntityFromDTO(dto, usuario);
+        processarSenha(dto, usuario);
+        Usuario usuarioAtualizado = usuarioRepository.save(usuario);
+        return usuarioMapper.toDTO(usuarioAtualizado);
+    }
+
+    private void processarSenha(UsuarioDTO dto, Usuario entity) {
         if (dto.getSenha() != null && !dto.getSenha().isEmpty()) {
             entity.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
         }
-
-        entity = usuarioRepository.save(entity);
-        return usuarioMapper.toDTO(entity);
     }
 }

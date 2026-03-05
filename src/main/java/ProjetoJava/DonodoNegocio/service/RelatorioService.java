@@ -4,6 +4,7 @@ import ProjetoJava.DonodoNegocio.dto.TransacaoDTO;
 import ProjetoJava.DonodoNegocio.mapper.TransacaoMapper;
 import ProjetoJava.DonodoNegocio.repository.MovimentacaoRepository;
 import ProjetoJava.DonodoNegocio.repository.TransacaoRepository;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,28 +22,29 @@ public class RelatorioService {
     private final MovimentacaoRepository movimentacaoRepository;
     private final TransacaoMapper transacaoMapper;
 
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getDespesas(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Despesa");
+    @Getter
+    @RequiredArgsConstructor
+    public enum TipoRelatorio {
+        DESPESA("Despesa"),
+        RECEITA("Receita"),
+        DEVENDO("Devendo"),
+        QUITADO("Quitado"),
+        ENTRADA_ESTOQUE("Entrada Estoque"),
+        SAIDA_ESTOQUE("Saida Estoque"),
+        VENDA("Venda"),
+        COMPRA("Compra"),
+        TRANSFERENCIA("Transferencia"),
+        AJUSTE("Ajuste");
+
+        private final String nome;
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getReceitas(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Receita");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getDevendo(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Devendo");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getQuitado(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Quitado");
+    public List<TransacaoDTO> getRelatorioTransacoes(Long empresaId, TipoRelatorio tipo) {
+        return transacaoRepository.findByEmpresaIdAndTipoTransacaoNome(empresaId, tipo.getNome()).stream()
+                .map(transacaoMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -49,47 +52,5 @@ public class RelatorioService {
     public BigDecimal getLucro(Long empresaId) {
         BigDecimal saldo = movimentacaoRepository.calcularSaldoTesouro(empresaId);
         return saldo != null ? saldo : BigDecimal.ZERO;
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getEntradasEstoque(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Entrada Estoque");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getSaidasEstoque(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Saida Estoque");
-    }
-
-    private List<TransacaoDTO> getTransacoesPorTipo(Long empresaId, String tipo) {
-        return transacaoRepository.findByEmpresaIdAndTipoTransacaoNome(empresaId, tipo).stream()
-                .map(transacaoMapper::toDTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getVendas(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Venda");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getCompras(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Compra");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getTransferencias(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Transferencia");
-    }
-
-    @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTOR')")
-    public List<TransacaoDTO> getAjustes(Long empresaId) {
-        return getTransacoesPorTipo(empresaId, "Ajuste");
     }
 }

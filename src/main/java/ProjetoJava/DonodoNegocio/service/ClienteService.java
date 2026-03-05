@@ -21,30 +21,31 @@ public class ClienteService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERADOR')")
     public ClienteDTO salvar(ClienteDTO dto) {
-        Cliente entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Cliente> existing = clienteRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                clienteMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = clienteMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = clienteMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoCliente(dto);
         }
 
-        if (isNew) {
-            Integer maxId = clienteRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Cliente> clienteOpt = clienteRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return clienteOpt
+                .map(cliente -> atualizarClienteExistente(dto, cliente))
+                .orElseGet(() -> criarNovoCliente(dto));
+    }
 
-        entity = clienteRepository.save(entity);
-        return clienteMapper.toDTO(entity);
+    private ClienteDTO criarNovoCliente(ClienteDTO dto) {
+        Cliente novoCliente = clienteMapper.toEntity(dto);
+        
+        Integer maxId = clienteRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoCliente.setIdLocalEmpresa(proximoId);
+        
+        Cliente clienteSalvo = clienteRepository.save(novoCliente);
+        return clienteMapper.toDTO(clienteSalvo);
+    }
+
+    private ClienteDTO atualizarClienteExistente(ClienteDTO dto, Cliente cliente) {
+        clienteMapper.updateEntityFromDTO(dto, cliente);
+        Cliente clienteAtualizado = clienteRepository.save(cliente);
+        return clienteMapper.toDTO(clienteAtualizado);
     }
 }

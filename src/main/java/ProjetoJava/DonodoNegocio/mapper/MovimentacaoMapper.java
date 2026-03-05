@@ -4,14 +4,14 @@ import ProjetoJava.DonodoNegocio.dto.MovimentacaoDTO;
 import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Movimentacao;
 import ProjetoJava.DonodoNegocio.repository.TransacaoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class MovimentacaoMapper {
 
-    @Autowired
-    private TransacaoRepository transacaoRepository;
+    private final TransacaoRepository transacaoRepository;
 
     public Movimentacao toEntity(MovimentacaoDTO dto) {
         if (dto == null) {

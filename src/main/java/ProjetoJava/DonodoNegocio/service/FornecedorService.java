@@ -21,30 +21,31 @@ public class FornecedorService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public FornecedorDTO salvar(FornecedorDTO dto) {
-        Fornecedor entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Fornecedor> existing = fornecedorRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                fornecedorMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = fornecedorMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = fornecedorMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoFornecedor(dto);
         }
 
-        if (isNew) {
-            Integer maxId = fornecedorRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Fornecedor> fornecedorOpt = fornecedorRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return fornecedorOpt
+                .map(fornecedor -> atualizarFornecedorExistente(dto, fornecedor))
+                .orElseGet(() -> criarNovoFornecedor(dto));
+    }
 
-        entity = fornecedorRepository.save(entity);
-        return fornecedorMapper.toDTO(entity);
+    private FornecedorDTO criarNovoFornecedor(FornecedorDTO dto) {
+        Fornecedor novoFornecedor = fornecedorMapper.toEntity(dto);
+        
+        Integer maxId = fornecedorRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoFornecedor.setIdLocalEmpresa(proximoId);
+        
+        Fornecedor fornecedorSalvo = fornecedorRepository.save(novoFornecedor);
+        return fornecedorMapper.toDTO(fornecedorSalvo);
+    }
+
+    private FornecedorDTO atualizarFornecedorExistente(FornecedorDTO dto, Fornecedor fornecedor) {
+        fornecedorMapper.updateEntityFromDTO(dto, fornecedor);
+        Fornecedor fornecedorAtualizado = fornecedorRepository.save(fornecedor);
+        return fornecedorMapper.toDTO(fornecedorAtualizado);
     }
 }

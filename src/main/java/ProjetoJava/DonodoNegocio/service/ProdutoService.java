@@ -21,30 +21,31 @@ public class ProdutoService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public ProdutoDTO salvar(ProdutoDTO dto) {
-        Produto entity;
-        boolean isNew = false;
-
-        if (dto.getIdLocalEmpresa() != null) {
-            Optional<Produto> existing = produtoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
-            if (existing.isPresent()) {
-                entity = existing.get();
-                produtoMapper.updateEntityFromDTO(dto, entity);
-            } else {
-                entity = produtoMapper.toEntity(dto);
-                isNew = true;
-            }
-        } else {
-            entity = produtoMapper.toEntity(dto);
-            isNew = true;
+        if (dto.getIdLocalEmpresa() == null) {
+            return criarNovoProduto(dto);
         }
 
-        if (isNew) {
-            Integer maxId = produtoRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
-            int nextId = (maxId == null) ? 1 : maxId + 1;
-            entity.setIdLocalEmpresa(nextId);
-        }
+        Optional<Produto> produtoOpt = produtoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getIdLocalEmpresa().intValue());
+        
+        return produtoOpt
+                .map(produto -> atualizarProdutoExistente(dto, produto))
+                .orElseGet(() -> criarNovoProduto(dto));
+    }
 
-        entity = produtoRepository.save(entity);
-        return produtoMapper.toDTO(entity);
+    private ProdutoDTO criarNovoProduto(ProdutoDTO dto) {
+        Produto novoProduto = produtoMapper.toEntity(dto);
+        
+        Integer maxId = produtoRepository.findMaxIdLocalByEmpresaId(dto.getEmpresaId());
+        int proximoId = (maxId == null) ? 1 : maxId + 1;
+        novoProduto.setIdLocalEmpresa(proximoId);
+        
+        Produto produtoSalvo = produtoRepository.save(novoProduto);
+        return produtoMapper.toDTO(produtoSalvo);
+    }
+
+    private ProdutoDTO atualizarProdutoExistente(ProdutoDTO dto, Produto produto) {
+        produtoMapper.updateEntityFromDTO(dto, produto);
+        Produto produtoAtualizado = produtoRepository.save(produto);
+        return produtoMapper.toDTO(produtoAtualizado);
     }
 }

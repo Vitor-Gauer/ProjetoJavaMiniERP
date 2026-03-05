@@ -5,24 +5,22 @@ import ProjetoJava.DonodoNegocio.model.Empresa;
 import ProjetoJava.DonodoNegocio.model.Produto;
 import ProjetoJava.DonodoNegocio.repository.EstoqueRepository;
 import ProjetoJava.DonodoNegocio.repository.FornecedorRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProdutoMapper {
 
-    @Autowired
-    private EstoqueRepository estoqueRepository;
-
-    @Autowired
-    private FornecedorRepository fornecedorRepository;
+    private final EstoqueRepository estoqueRepository;
+    private final FornecedorRepository fornecedorRepository;
 
     public Produto toEntity(ProdutoDTO dto) {
-        if (dto == null) {
-            return null;
+        if (dto.getIdLocalEmpresa() == null || dto.getEmpresaId() == null) {
+            throw new IllegalArgumentException("Empresa ID ou Local ID faltam na request.");
         }
         Produto entity = new Produto();
-        entity.setIdLocalEmpresa(dto.getIdLocalEmpresa() != null ? dto.getIdLocalEmpresa().intValue() : null);
+        entity.setIdLocalEmpresa(dto.getIdLocalEmpresa().intValue());
         entity.setNome(dto.getNome());
         entity.setMarca(dto.getMarca());
         entity.setSubmarca(dto.getSubmarca());
@@ -30,20 +28,20 @@ public class ProdutoMapper {
         entity.setQuantidade(dto.getQuantidade());
         entity.setSku(dto.getSku());
 
-        if (dto.getEmpresaId() != null) {
-            Empresa empresa = new Empresa();
-            empresa.setId(dto.getEmpresaId());
-            entity.setEmpresa(empresa);
+        Empresa empresa = new Empresa();
+        empresa.setId(dto.getEmpresaId());
+        entity.setEmpresa(empresa);
 
-            // Resolve relacionamentos baseados em ID Local e Empresa ID
-            if (dto.getEstoqueId() != null) {
-                estoqueRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getEstoqueId().intValue())
-                        .ifPresent(entity::setEstoque);
-            }
-            if (dto.getFornecedorId() != null) {
-                fornecedorRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getFornecedorId().intValue())
-                        .ifPresent(entity::setFornecedor);
-            }
+        // Devido a esses dois campos serem Longs -> intValue e, principalmente, estarmos no mapper, é interessante lidar com NPE
+        // A unica forma de atingir esse ponto deverá ser após passar por um rest controller (ainda não implementado) ou *fazer um teste sem passar por endpoint*
+        // Exemplo: testar se o banco realmente vai retornar sqlexception ao em vez de salvar um valor com regra de negócio errada
+        if (dto.getEstoqueId() != null) {
+            estoqueRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getEstoqueId().intValue())
+                    .ifPresent(entity::setEstoque);
+        }
+        if (dto.getFornecedorId() != null) {
+            fornecedorRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getFornecedorId().intValue())
+                    .ifPresent(entity::setFornecedor);
         }
 
         return entity;
