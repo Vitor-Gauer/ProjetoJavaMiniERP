@@ -26,12 +26,22 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
+    private final LoginAttemptService loginAttemptService;
 
     public Optional<AuthResponse> authenticateEmpresa(String login, String senha) {
+        String rateLimitKey = "empresa:" + login;
+
+        if (loginAttemptService.isBlocked(rateLimitKey)) {
+            return Optional.empty();
+        }
+
         Optional<AuthResponse> response = authenticateEmpresaComoMaster(login, senha)
                 .or(() -> authenticateEmpresaComoPublico(login, senha));
 
-        if (response.isEmpty()) {
+        if (response.isPresent()) {
+            loginAttemptService.loginSucceeded(rateLimitKey);
+        } else {
+            loginAttemptService.loginFailed(rateLimitKey);
             dispararEventoFalha(login);
         }
         return response;
@@ -50,13 +60,21 @@ public class AuthService {
     }
 
     public Optional<CustomUserDetails> authenticateUsuario(String login, String senha, Long empresaId) {
-        Optional<CustomUserDetails> userDetails = authenticateUsuarioNormal(login, senha, empresaId)
-                .or(() -> authenticateUsuarioComoAdmin(login, senha, empresaId));
+        String rateLimitKey = "usuario:" + empresaId + ":" + login;
 
-        if (userDetails.isEmpty()) {
+        if (loginAttemptService.isBlocked(rateLimitKey)) {
+            return Optional.empty();
+        }
+
+        Optional<CustomUserDetails> userDetails = authenticateUsuarioNormal(login, senha, empresaId);
+
+        if (userDetails.isPresent()) {
+            loginAttemptService.loginSucceeded(rateLimitKey);
+        } else {
+            loginAttemptService.loginFailed(rateLimitKey);
             String prefixoFalha = empresaRepository.findById(empresaId)
-                                    .map(Empresa::getLoginPublico)
-                                    .orElse("UNKNOWN");
+                    .map(Empresa::getLoginPublico)
+                    .orElse("UNKNOWN");
             dispararEventoFalha(prefixoFalha + "/" + login);
         }
         return userDetails;
@@ -68,13 +86,6 @@ public class AuthService {
                 .map(CustomUserDetails::new);
     }
 
-    private Optional<CustomUserDetails> authenticateUsuarioComoAdmin(String login, String senha, Long empresaId) {
-        return empresaRepository.findById(empresaId)
-                .filter(empresa -> empresa.getLoginMaster().equals(login))
-                .filter(empresa -> passwordEncoder.matches(senha, empresa.getSenhaHashAdmin()))
-                .map(CustomUserDetails::new);
-    }
-
     public void definirAutenticacaoNoContexto(CustomUserDetails userDetails) {
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -82,7 +93,7 @@ public class AuthService {
     }
 
     private void dispararEventoFalha(String username) {
-        Authentication auth = new UsernamePasswordAuthenticationToken(username, "hidden");
+        Authentication auth = new UsernamePasswordAuthenticationToken(username, null);
         eventPublisher.publishEvent(new AuthenticationFailureBadCredentialsEvent(auth, new BadCredentialsException("Falha manual de autenticação")));
     }
 }

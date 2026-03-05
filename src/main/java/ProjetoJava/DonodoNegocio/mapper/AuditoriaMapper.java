@@ -3,10 +3,7 @@ package ProjetoJava.DonodoNegocio.mapper;
 import ProjetoJava.DonodoNegocio.dto.AuditoriaDTO;
 import ProjetoJava.DonodoNegocio.model.Auditoria;
 import ProjetoJava.DonodoNegocio.model.Empresa;
-import ProjetoJava.DonodoNegocio.security.CustomUserDetails;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 @Component
 public class AuditoriaMapper {
@@ -21,7 +18,7 @@ public class AuditoriaMapper {
         entity.setEhAdmin(dto.isEhAdmin());
         entity.setTipoOperacao(dto.getTipoOperacao());
         entity.setTabelaAfetada(dto.getTabelaAfetada());
-        
+
         if (dto.getDataHora() != null) {
             entity.setDataHora(dto.getDataHora());
         }
@@ -51,32 +48,51 @@ public class AuditoriaMapper {
         return dto;
     }
 
-    public Auditoria toEntityLogin(CustomUserDetails userDetails) {
+    public Auditoria createLoginAuditoria(Long empresaId, Long loginId, boolean ehAdmin, Integer idLocalEmpresa) {
         Auditoria auditoria = new Auditoria();
-        
-        Empresa empresa = new Empresa();
-        empresa.setId(userDetails.getEmpresaId());
-        auditoria.setEmpresa(empresa);
-        
-        auditoria.setLoginId(userDetails.getId());
-        auditoria.setEhAdmin(userDetails.isEmpresa());
+        auditoria.setLoginId(loginId);
+        auditoria.setEhAdmin(ehAdmin);
+        auditoria.setIdLocalEmpresa(idLocalEmpresa);
         auditoria.setTipoOperacao("LOGIN");
         auditoria.setTabelaAfetada("SISTEMA");
-        auditoria.setDataHora(LocalDateTime.now());
-        auditoria.setIdLocalEmpresa(userDetails.getIdLocalEmpresa() != null ? userDetails.getIdLocalEmpresa() : 0);
-        
+        auditoria.setDataHora(java.time.LocalDateTime.now());
+
+        ProjetoJava.DonodoNegocio.model.Empresa empresa = new ProjetoJava.DonodoNegocio.model.Empresa();
+        empresa.setId(empresaId);
+        auditoria.setEmpresa(empresa);
+
         return auditoria;
     }
 
-    public Auditoria toEntityInvasao(Empresa empresa, Long loginId, boolean ehAdmin, Integer idLocal) {
+    public Auditoria createInvasionAttemptAuditoria(Long empresaId, Long loginId, boolean ehAdmin, Integer idLocalEmpresa) {
         Auditoria auditoria = new Auditoria();
-        auditoria.setEmpresa(empresa);
         auditoria.setLoginId(loginId);
         auditoria.setEhAdmin(ehAdmin);
-        auditoria.setIdLocalEmpresa(idLocal != null ? idLocal : 0);
+        auditoria.setIdLocalEmpresa(idLocalEmpresa);
         auditoria.setTipoOperacao("POSSIVEL_TENTATIVA_INVASAO");
         auditoria.setTabelaAfetada("SISTEMA");
-        auditoria.setDataHora(LocalDateTime.now());
+        auditoria.setDataHora(java.time.LocalDateTime.now());
+
+        ProjetoJava.DonodoNegocio.model.Empresa empresa = new ProjetoJava.DonodoNegocio.model.Empresa();
+        empresa.setId(empresaId);
+        auditoria.setEmpresa(empresa);
+
+        return auditoria;
+    }
+
+    public Auditoria createErrorAuditoria(Long empresaId, Long loginId, boolean ehAdmin, Integer idLocalEmpresa, String errorLocation) {
+        Auditoria auditoria = new Auditoria();
+        auditoria.setLoginId(loginId);
+        auditoria.setEhAdmin(ehAdmin);
+        auditoria.setIdLocalEmpresa(idLocalEmpresa);
+        auditoria.setTipoOperacao("ERRO_SISTEMA");
+        auditoria.setTabelaAfetada(errorLocation);
+        auditoria.setDataHora(java.time.LocalDateTime.now());
+
+        ProjetoJava.DonodoNegocio.model.Empresa empresa = new ProjetoJava.DonodoNegocio.model.Empresa();
+        empresa.setId(empresaId);
+        auditoria.setEmpresa(empresa);
+
         return auditoria;
     }
 }

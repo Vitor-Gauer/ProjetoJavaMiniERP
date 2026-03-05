@@ -41,13 +41,16 @@ public class CustomUserDetails implements UserDetails {
         this.password = usuario.getSenhaHash();
         this.isEmpresa = false;
         this.isAtivo = usuario.isAtivo();
-        
-        String role = "ROLE_OPERADOR"; // Default
-        if (usuario.getTipoUsuario() != null) {
-            String cargo = usuario.getTipoUsuario().getCargo().toUpperCase();
-            if (cargo.contains("CONSULTOR") || cargo.contains("AUDITOR")) {
-                role = "ROLE_CONSULTOR";
-            }
+
+        final String role;
+
+        if (usuario.getTipoUsuario() != null &&
+           (usuario.getTipoUsuario().getCargo().toUpperCase().contains("CONSULTOR") ||
+            usuario.getTipoUsuario().getCargo().toUpperCase().contains("AUDITOR")))
+        {
+            role = "ROLE_CONSULTOR";
+        } else {
+            role = "ROLE_OPERADOR"; // O 'else' é obrigatório para garantir a inicialização
         }
         this.authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
     }

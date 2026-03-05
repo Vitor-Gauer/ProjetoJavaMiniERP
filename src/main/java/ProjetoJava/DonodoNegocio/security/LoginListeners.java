@@ -6,7 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -17,7 +20,7 @@ public class LoginListeners {
 
     @EventListener
     public void onSuccess(AuthenticationSuccessEvent event) {
-        if (event.getAuthentication() != null && event.getAuthentication().getPrincipal() instanceof CustomUserDetails userDetails) {
+        if (event.getAuthentication().getPrincipal() instanceof CustomUserDetails userDetails) {
             loginAttemptService.loginSucceeded(userDetails.getUsername());
             auditService.logLoginSuccess(userDetails);
         }
@@ -25,14 +28,16 @@ public class LoginListeners {
 
     @EventListener
     public void onFailure(AuthenticationFailureBadCredentialsEvent event) {
-        if (event.getAuthentication() != null && event.getAuthentication().getPrincipal() != null) {
-            String username = event.getAuthentication().getPrincipal().toString();
-            loginAttemptService.loginFailed(username);
+        Optional.of(event.getAuthentication())
+                .map(Authentication::getPrincipal)
+                .map(Object::toString)
+                .ifPresent(username -> {
+                    loginAttemptService.loginFailed(username);
 
-            if (loginAttemptService.isBlocked(username)) {
-                auditService.logInvasionAttempt(username);
-                loginAttemptService.unblock(username); // Reset after logging
-            }
-        }
+                    if (loginAttemptService.isBlocked(username)) {
+                        auditService.logInvasionAttempt(username);
+                        loginAttemptService.unblock(username);
+                    }
+                });
     }
 }

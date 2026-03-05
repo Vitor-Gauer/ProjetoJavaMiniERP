@@ -16,11 +16,11 @@ public class TransacaoMapper {
     private final TipoTransacaoRepository tipoTransacaoRepository;
 
     public Transacao toEntity(TransacaoDTO dto) {
-        if (dto == null) {
-            return null;
+        if (dto.getIdLocalEmpresa() == null || dto.getEmpresaId() == null) {
+            throw new IllegalArgumentException("Empresa ID ou Local ID faltam na request.");
         }
         Transacao entity = new Transacao();
-        entity.setIdLocalEmpresa(dto.getIdLocalEmpresa() != null ? dto.getIdLocalEmpresa().intValue() : null);
+        entity.setIdLocalEmpresa(dto.getIdLocalEmpresa().intValue());
         entity.setTabelaResponsavel(dto.getTabelaResponsavel());
         entity.setResponsavelId(dto.getResponsavelId());
         entity.setFoiResolvido(dto.isFoiResolvido());
@@ -31,19 +31,17 @@ public class TransacaoMapper {
         entity.setIntervaloCobranca(dto.getIntervaloCobranca());
         entity.setDataResolucao(dto.getDataResolucao());
 
-        if (dto.getEmpresaId() != null) {
-            Empresa empresa = new Empresa();
-            empresa.setId(dto.getEmpresaId());
-            entity.setEmpresa(empresa);
+        Empresa empresa = new Empresa();
+        empresa.setId(dto.getEmpresaId());
+        entity.setEmpresa(empresa);
 
-            if (dto.getUsuarioId() != null) {
-                usuarioRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getUsuarioId().intValue())
-                        .ifPresent(entity::setUsuario);
-            }
-            if (dto.getTipoId() != null) {
-                tipoTransacaoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getTipoId().intValue())
-                        .ifPresent(entity::setTipoTransacao);
-            }
+        if (dto.getUsuarioId() != null) {
+            usuarioRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getUsuarioId().intValue())
+                    .ifPresent(entity::setUsuario);
+        }
+        if (dto.getTipoId() != null) {
+            tipoTransacaoRepository.findByEmpresaIdAndIdLocalEmpresa(dto.getEmpresaId(), dto.getTipoId().intValue())
+                    .ifPresent(entity::setTipoTransacao);
         }
 
         return entity;
