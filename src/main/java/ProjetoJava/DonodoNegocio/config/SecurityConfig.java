@@ -1,36 +1,85 @@
 package ProjetoJava.DonodoNegocio.config;
 
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
 public class SecurityConfig {
 
+    private final Environment env;
+
+    public SecurityConfig(Environment env) {
+        this.env = env;
+    }
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        // Libera recursos estáticos (Bootstrap, CSS, Imagens)
-                        .requestMatchers("/webjars/**", "/css/**", "/js/**", "/assets/**", "/livereload.js").permitAll()
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-                        // Liberar páginas específicas
-                        .requestMatchers("/", "/cadastro").permitAll()
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
 
-                        // Qualquer outra requisição exige login
-                        .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .permitAll()
-                )
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) {
+        try {
+            http.authorizeHttpRequests(auth -> {
+                boolean isDev = Arrays.asList(env.getActiveProfiles()).contains("dev");
 
-                .logout(logout -> logout.permitAll());
+                if (isDev) {
+                    auth.requestMatchers("/livereload.js").permitAll();
+                }
 
-        return http.build();
+                auth.anyRequest().authenticated();
+            });
+
+            http
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(auth -> auth
+                            // Libera recursos estáticos (Bootstrap, CSS, Imagens)
+                            .requestMatchers("/webjars/**", "/css/**", "/js/**", "/assets/**").permitAll()
+
+                            // Liberar páginas de login e cadastro
+                            .requestMatchers("/", "/cadastro", "/login/**").permitAll()
+
+                            // Qualquer outra requisição exige login
+                            .anyRequest().authenticated()
+                    )
+                    .sessionManagement(session -> session
+                            .sessionFixation().migrateSession()
+                            .maximumSessions(1)
+                            .maxSessionsPreventsLogin(false)
+                    )
+                    .logout(logout -> logout
+                            .logoutUrl("/logout")
+                            .logoutSuccessUrl("/login")
+                            .invalidateHttpSession(true)
+                            .deleteCookies("JSESSIONID")
+                            .permitAll()
+                    )
+                    .exceptionHandling(ex -> ex
+                            .accessDeniedPage("/error/403")
+                    );
+
+            return http.build();
+        } catch (Exception e) {
+            throw new BeanCreationException("Error creating SecurityFilterChain", e);
+        }
     }
 }

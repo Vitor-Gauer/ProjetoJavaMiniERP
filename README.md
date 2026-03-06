@@ -1,55 +1,57 @@
 # Dono do Negócio
 !["Logo"](https://i.ibb.co/s9yp7PpQ/logo.png)
 
-Sistema web com back-end em Java para auxiliar o **MEI** na organização administrativa, comercial e financeira do negócio.
+Sistema web com back-end em Java focado em **pequenos empreendedores**, oferecendo uma gestão simplificada e eficiente de transferências financeiras e controle de estoque, sem a complexidade de ERPs corporativos.
 
 ---
 
 ## 🚀 Tecnologias
 
-* Java + Spring Boot
-
-  * Spring Web
-  * Spring Security
-  * Spring DevTools
-* Spring Data JPA
-* Thymeleaf
-* Lombok
-* Bootstrap
-* PostgreSQL
-* API ViaCEP (consulta de endereços)
+* **Java 17+** com **Spring Boot**
+  * Spring Web (MVC)
+  * Spring Security (Autenticação Customizada em Duas Etapas)
+  * Spring Data JPA
+* **Banco de Dados:** PostgreSQL
+* **Front-end:** Thymeleaf + Bootstrap (Responsivo)
+* **Ferramentas:** Lombok, Spring DevTools
+* **Integrações:** API ViaCEP (consulta de endereços)
 
 ---
 
-## 🔐 Perfis de Usuário
+## 🎯 Objetivo e Escopo
 
-* **Administrador**: Cadastros de usuários e acesso total ao sistema
-* **Operador**: Cadastros de vendas e compras
-* **Financeiro**: Cadastros de transações financeiras
+O projeto foi desenhado para atender negócios que precisam registrar **entradas e saídas** (dinheiro e produtos) de forma ágil, **excluindo** propositalmente módulos complexos como Fiscal (NF), RH, PCP, Qualidade e Comércio Exterior.
 
-Controle de acesso implementado com **Spring Security**.
-
----
-
-## 🗄️ Entidades
-
-* Empresa
-* Usuário
-* Auditoria
-* Cliente
-* Fornecedor
-* Produto
-* Estoque
-* Movimentação
-* Transação
-* Tesouro
+O foco é a **saúde financeira e operacional** do dia a dia:
+* **Financeiro:** Controle de Contas (Tesouro), Receitas, Despesas, Contas a Pagar/Receber.
+* **Estoque:** Movimentação de Produtos, Entradas e Saídas.
+* **Auditoria:** Rastreabilidade completa de ações de usuários e administradores.
 
 ---
 
-## 📌 Funcionalidades
+## 🔐 Segurança e Perfis
 
-* Autenticação e autorização por empresa e por usuario.
-* Gestão de diversas entidades que uma empresa de vendas de produtos possa ter
-* Registro de vendas, compras e transações
-* Auditoria de ações, para quando a empresa cresce e tem funcionários
-* Interface web responsiva (Bootstrap)
+O sistema implementa um fluxo de login em duas etapas (Empresa -> Usuário) e controle de acesso granular:
+
+* **ADMIN (Dono):** Acesso irrestrito, incluindo relatórios de Lucro e Auditoria.
+* **OPERADOR:** Registro de operações diárias (vendas, compras).
+* **CONSULTOR/AUDITOR:** Visualização de relatórios e auditorias, sem permissão de escrita crítica.
+
+---
+
+## 🗄️ Arquitetura de Entidades
+
+O núcleo do sistema baseia-se em um modelo flexível de **Transações e Movimentações**:
+
+* **Core:** `Empresa`, `Usuario`, `Auditoria`
+* **Financeiro:** `Tesouro` (Caixa/Banco), `Transacao`, `TipoTransacao`
+* **Operacional:** `Produto`, `Estoque`, `Movimentacao`
+* **Parceiros:** `Cliente`, `Fornecedor`
+
+---
+
+## 📊 Relatórios Gerenciais
+
+* **Financeiro:** Despesas, Receitas, Contas Abertas (Devendo), Contas Quitadas (Quitado), Lucro (Exclusivo Admin).
+* **Operacional:** Entradas e Saídas de Estoque.
+* **Segurança:** Auditoria de Acessos e Tentativas de Invasão.
