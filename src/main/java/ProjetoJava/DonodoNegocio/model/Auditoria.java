@@ -18,7 +18,7 @@ public class Auditoria extends BaseEmpresaEntity {
     @Column(name = "eh_admin", nullable = false)
     private boolean ehAdmin;
 
-    @Column(name = "tipo_operacao", nullable = false, length = 30) // Aumentado para caber "POSSIVEL_TENTATIVA_INVASAO"
+    @Column(name = "tipo_operacao", nullable = false, length = 30)
     private String tipoOperacao;
 
     @Column(name = "tabela_afetada", nullable = false, length = 50)
