@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Lucro - ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .lucro-positive { color: #198754; font-weight: bold; }
+        .lucro-negative { color: #dc3545; font-weight: bold; }
+        .lucro-neutral { color: #6c757d; }
+        .table-responsive { max-height: 500px; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="p-2 bg-secondary text-white rounded text-center" style="width: 120px;">
+            Logo<br><small>(Empresa)</small>
+        </div>
+        <h2 class="h3">Relatório de Lucro</h2>
+        <form th:action="@{/logout}" method="post" class="m-0">
+            <button type="submit" class="btn btn-danger" title="Salva automaticamente ao sair">Sair</button>
+        </form>
+    </div>
+
+    <!-- Formulário de Parâmetros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-gear me-2"></i>Parâmetros do Relatório
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="formRelatorio" onsubmit="gerarRelatorio(event)">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="anoInicial" class="form-label">Ano Inicial</label>
+                        <input type="number" class="form-control" id="anoInicial" 
+                               th:value="${#temporals.format(#temporals.createNow(), 'yyyy')}" 
+                               min="2020" max="2030" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="anoFinal" class="form-label">Ano Final</label>
+                        <input type="number" class="form-control" id="anoFinal" 
+                               th:value="${#temporals.format(#temporals.createNow(), 'yyyy')}" 
+                               min="2020" max="2030" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="meses" class="form-label">Meses (separados por vírgula)</label>
+                        <input type="text" class="form-control" id="meses" 
+                               placeholder="1,2,3,4,5,6,7,8,9,10,11,12" 
+                               value="1,2,3,4,5,6,7,8,9,10,11,12">
+                        <div class="form-text">Deixe em branco para todos os meses</div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-1"></i> Gerar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultado do Relatório -->
+    <div id="resultadoContainer" style="display: none;">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Resultado do Relatório
+                </h6>
+                <div>
+                    <button class="btn btn-sm btn-outline-success" onclick="exportarPDF()">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-outline-info ms-2" onclick="exportarExcel()">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="conteudoRelatorio">
+                    <!-- Conteúdo será carregado via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagem de Erro -->
+    <div id="erroContainer" style="display: none;">
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span id="mensagemErro"></span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function gerarRelatorio(event) {
+    event.preventDefault();
+    
+    const anoInicial = document.getElementById('anoInicial').value;
+    const anoFinal = document.getElementById('anoFinal').value;
+    const meses = document.getElementById('meses').value;
+    
+    if (parseInt(anoInicial) > parseInt(anoFinal)) {
+        mostrarErro('Ano inicial não pode ser maior que ano final');
+        return;
+    }
+    
+    const params = new URLSearchParams({
+        anoInicial: anoInicial,
+        anoFinal: anoFinal,
+        meses: meses
+    });
+    
+    fetch('/relatorio/lucro/gerar?' + params.toString())
+        .then(response => response.text())
+        .then(html => {
+            if (html.includes('class="erro"')) {
+                // Extrair mensagem de erro do HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const erroElement = tempDiv.querySelector('.erro');
+                mostrarErro(erroElement ? erroElement.textContent : 'Erro desconhecido');
+            } else {
+                document.getElementById('conteudoRelatorio').innerHTML = html;
+                document.getElementById('resultadoContainer').style.display = 'block';
+                document.getElementById('erroContainer').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            mostrarErro('Erro ao carregar relatório: ' + error.message);
+        });
+}
+
+function mostrarErro(mensagem) {
+    document.getElementById('mensagemErro').textContent = mensagem;
+    document.getElementById('erroContainer').style.display = 'block';
+    document.getElementById('resultadoContainer').style.display = 'none';
+}
+
+function exportarPDF() {
+    const anoInicial = document.getElementById('anoInicial').value;
+    const anoFinal = document.getElementById('anoFinal').value;
+    const meses = document.getElementById('meses').value;
+    
+    const params = new URLSearchParams({
+        anoInicial: anoInicial,
+        anoFinal: anoFinal,
+        meses: meses
+    });
+    
+    window.open('/relatorio/lucro/pdf?' + params.toString(), '_blank');
+}
+
+function exportarExcel() {
+    // Simulação - em produção, isso chamaria um endpoint real
+    alert('Exportação para Excel será implementada com backend adequado.');
+}
+
+function formatarCurrency(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor || 0);
+}
+
+function formatarPercentual(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format((valor || 0) / 100);
+}
+
+function getClasseLucro(valor) {
+    if (valor > 0) return 'lucro-positive';
+    if (valor < 0) return 'lucro-negative';
+    return 'lucro-neutral';
+}
+</script>
+</body>
+</html>

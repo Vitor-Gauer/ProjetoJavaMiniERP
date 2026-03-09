@@ -1,0 +1,24 @@
+package projetojava.donodonegocio.repository;
+
+import projetojava.donodonegocio.model.Movimentacao;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface MovimentacaoRepository extends JpaRepository<Movimentacao, Long> {
+
+    List<Movimentacao> findByEmpresaIdOrderByIdLocalEmpresaAsc(Long empresaId);
+
+    Optional<Movimentacao> findByEmpresaIdAndIdLocalEmpresa(Long empresaId, Integer idLocalEmpresa);
+
+    @Query("SELECT MAX(m.idLocalEmpresa) FROM Movimentacao m WHERE m.empresa.id = :empresaId")
+    Integer findMaxIdLocalByEmpresaId(Long empresaId);
+    
+    @Query("SELECT SUM(CASE WHEN m.ehEntrada = true THEN m.quantidade ELSE -m.quantidade END) FROM Movimentacao m WHERE m.empresa.id = :empresaId AND m.tabelaMovimentada = 'Tesouro'")
+    BigDecimal calcularSaldoTesouro(Long empresaId);
+}

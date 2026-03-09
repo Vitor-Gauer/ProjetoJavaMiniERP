@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,53 +13,675 @@
         <div class="p-2 bg-secondary text-white rounded text-center" style="width: 120px;">
             Logo<br><small>(Empresa)</small>
         </div>
-        <h2 class="h3">Tabela de Entidades / Transações</h2>
-        <button class="btn btn-danger" title="Salva automaticamente ao sair">Sair</button>
+        <h2 class="h3" th:text="${modo} == 'transacao' ? (${tipo} == 'venda' ? 'Vendas' : 'Compras') : 'Tabela'">Tabela</h2>
+        <form th:action="@{/logout}" method="post" class="m-0">
+            <button type="submit" class="btn btn-danger" title="Salva automaticamente ao sair">Sair</button>
+        </form>
     </div>
+
+    <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+    <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+
     <div class="mb-3">
         <span class="fw-bold me-2">Status:</span>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="status" id="todos" checked>
-            <label class="form-check-label" for="todos">Todos</label>
-    </div>
-    <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" name="status" id="ativos">
-        <label class="form-check-label" for="ativos">Ativos</label>
-    </div>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="status" id="inativos">
-            <label class="form-check-label" for="inativos">Inativos</label>
-        </div>
+        <fieldset class="btn-group" aria-label="Filtro de status">
+            <a class="btn btn-outline-dark" th:classappend="${status}=='todos' ? ' active' : ''"
+               th:href="@{/tabelas(tipo=${tipo},status='todos',sort1=${sort1},dir1=${dir1},sort2=${sort2},dir2=${dir2})}">Todos</a>
+            <a class="btn btn-outline-dark" th:classappend="${status}=='ativos' ? ' active' : ''"
+               th:href="@{/tabelas(tipo=${tipo},status='ativos',sort1=${sort1},dir1=${dir1},sort2=${sort2},dir2=${dir2})}">Ativos</a>
+            <a class="btn btn-outline-dark" th:classappend="${status}=='inativos' ? ' active' : ''"
+               th:href="@{/tabelas(tipo=${tipo},status='inativos',sort1=${sort1},dir1=${dir1},sort2=${sort2},dir2=${dir2})}">Inativos</a>
+            <a class="btn btn-outline-dark" th:classappend="${status}=='quitados' ? ' active' : ''"
+               th:href="@{/tabelas(tipo=${tipo},status='quitados',sort1=${sort1},dir1=${dir1},sort2=${sort2},dir2=${dir2})}">Quitados</a>
+            <a class="btn btn-outline-dark" th:classappend="${status}=='devendo' ? ' active' : ''"
+               th:href="@{/tabelas(tipo=${tipo},status='devendo',sort1=${sort1},dir1=${dir1},sort2=${sort2},dir2=${dir2})}">Devendo</a>
+        </fieldset>
     </div>
 
     <div class="d-flex gap-2 mb-4">
-        <button class="btn btn-success">Adicionar</button>
-        <button class="btn btn-info text-white">Atualizar</button>
-        <button class="btn btn-warning text-white">Alterar</button>
-        <button class="btn btn-secondary">Filtrar</button>
-        <button class="btn btn-dark">Relatório</button> <!-- relatorio somente se for transacao -->
+        <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modalGrupo">Nova Venda/Compra (Grupo)</button>
+        <button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#modalSalvar" data-salvar-modo="criar">Adicionar (Avulsa)</button>
+        <button class="btn btn-info text-white" type="button" data-bs-toggle="modal" data-bs-target="#modalSalvar" data-salvar-modo="atualizar">Atualizar</button>
+        <button class="btn btn-warning text-white" type="button" data-bs-toggle="modal" data-bs-target="#modalAlterar">Alterar</button>
+        <button class="btn btn-outline-warning" type="button" data-bs-toggle="modal" data-bs-target="#modalAlterarGrupo">Alterar (Grupo)</button>
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#modalQuitarGrupo">Quitar (Grupo)</button>
+        <button class="btn btn-secondary" type="button" data-bs-toggle="modal" data-bs-target="#modalFiltro">Filtrar</button>
+        <button class="btn btn-dark" type="button" data-bs-toggle="modal" data-bs-target="#modalRelatorio" th:if="${modo}=='transacao'">Relatório</button>
+        <a href="/clientes/novo" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i> Novo Cliente
+        </a>
     </div>
     <div class="table-responsive bg-white rounded shadow-sm mt-2 p-3">
         <table class="table table-hover">
             <thead class="table-dark">
             <tr>
                 <th>ID</th>
-                <th>Descrição</th>
+                <th>Grupo</th>
+                <th>Tipo</th>
+                <th>Tabela</th>
+                <th>Responsável</th>
+                <th>Data</th>
+                <th>Finalizada</th>
                 <th>Status</th>
                 <th>Ações</th>
             </tr>
             </thead>
             <tbody>
-            <tr>
-                <td>1</td>
-                <td>Exemplo de Dado</td>
-                <td><span class="badge bg-success">Ativo</span></td>
-                <td>...</td>
+            <th:block th:if="${modo}=='transacao' and gruposTransacoes != null">
+                <th:block th:each="g : ${gruposTransacoes}">
+                    <tr class="table-secondary" th:attr="data-grupoid=${g.key}">
+                        <td colspan="9">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">Grupo:</span>
+                                    <span th:text="${g.key}"></span>
+                                    <span class="ms-3">
+                                        <span class="fw-bold">Etapas:</span>
+                                        <span th:text="${#lists.size(g.value)}"></span>
+                                        <span class="mx-1">|</span>
+                                        <span class="fw-bold">Quitadas:</span>
+                                        <span th:text="${#lists.size(#lists.select(g.value, t -> t.foiResolvido))}"></span>
+                                        <span class="mx-1">|</span>
+                                        <span class="fw-bold">Pendentes:</span>
+                                        <span th:text="${#lists.size(#lists.select(g.value, t -> !t.foiResolvido))}"></span>
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <form method="post" action="/transacoes/grupo/toggle-status" class="m-0">
+                                        <input type="hidden" name="tipo" th:value="${tipo}">
+                                        <input type="hidden" name="grupoId" th:value="${g.key}">
+                                        <button type="submit" class="btn btn-sm btn-warning text-white">Alterar Grupo</button>
+                                    </form>
+                                    <form method="post" action="/transacoes/grupo/quitar" class="m-0">
+                                        <input type="hidden" name="tipo" th:value="${tipo}">
+                                        <input type="hidden" name="grupoId" th:value="${g.key}">
+                                        <button type="submit" class="btn btn-sm btn-primary"
+                                                th:disabled="${#lists.size(#lists.select(g.value, t -> !t.ehValida)) > 0 or #lists.size(#lists.select(g.value, t -> !t.foiResolvido)) == 0}">Quitar Grupo</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr th:each="t : ${g.value}"
+                        th:attr="data-idlocal=${t.idLocalEmpresa},
+                                 data-tiponome=${t.tipoTransacao != null ? t.tipoTransacao.nome : ''},
+                                 data-tabelaresp=${t.tabelaResponsavel},
+                                 data-respid=${t.responsavelId},
+                                 data-intervalo=${t.intervaloCobranca},
+                                 data-foiresolvido=${t.foiResolvido}">
+                        <td th:text="${t.idLocalEmpresa}">1</td>
+                        <td th:text="${t.grupoId}"></td>
+                        <td th:text="${t.tipoTransacao != null ? t.tipoTransacao.nome : ''}"></td>
+                        <td th:text="${t.tabelaResponsavel}"></td>
+                        <td>
+                            <span th:if="${t.tabelaResponsavel} == 'Usuario'" th:text="${labelUsuarios[t.responsavelId] != null ? labelUsuarios[t.responsavelId] : t.responsavelId}"></span>
+                            <span th:if="${t.tabelaResponsavel} == 'Cliente'" th:text="${labelClientes[t.responsavelId] != null ? labelClientes[t.responsavelId] : t.responsavelId}"></span>
+                            <span th:if="${t.tabelaResponsavel} == 'Produto'" th:text="${labelProdutos[t.responsavelId] != null ? labelProdutos[t.responsavelId] : t.responsavelId}"></span>
+                            <span th:if="${t.tabelaResponsavel} == 'Tesouro'" th:text="${labelTesouros[t.responsavelId] != null ? labelTesouros[t.responsavelId] : t.responsavelId}"></span>
+                            <span th:if="${t.tabelaResponsavel} != 'Usuario' and ${t.tabelaResponsavel} != 'Cliente' and ${t.tabelaResponsavel} != 'Produto' and ${t.tabelaResponsavel} != 'Tesouro'" th:text="${t.responsavelId}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${t.foiResolvido}" th:text="${#temporals.format(t.dataResolucao,'dd/MM/yyyy HH:mm')}"></span>
+                            <span th:if="${!t.foiResolvido}" th:text="${#temporals.format(t.dataCriacao,'dd/MM/yyyy HH:mm')}"></span>
+                        </td>
+                        <td>
+                            <span class="badge" th:classappend="${t.foiResolvido} ? ' bg-success' : ' bg-secondary'" th:text="${t.foiResolvido} ? '+' : '-'">-</span>
+                        </td>
+                        <td>
+                            <span class="badge" th:classappend="${t.ehValida} ? ' bg-success' : ' bg-danger'" th:text="${t.ehValida} ? '+' : '-'">+</span>
+                        </td>
+                        <td>
+                            <form method="post" action="/transacoes/quitar" class="m-0">
+                                <input type="hidden" name="tipo" th:value="${tipo}">
+                                <input type="hidden" name="idLocalEmpresa" th:value="${t.idLocalEmpresa}">
+                                <button type="submit" class="btn btn-sm btn-primary"
+                                        th:disabled="${!t.ehValida or t.foiResolvido}">Quitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                </th:block>
+            </th:block>
+
+            <tr th:if="${modo}=='transacao' and (gruposTransacoes == null)" th:each="t : ${transacoes}"
+                th:attr="data-idlocal=${t.idLocalEmpresa},
+                         data-tiponome=${t.tipoTransacao != null ? t.tipoTransacao.nome : ''},
+                         data-tabelaresp=${t.tabelaResponsavel},
+                         data-respid=${t.responsavelId},
+                         data-intervalo=${t.intervaloCobranca},
+                         data-foiresolvido=${t.foiResolvido}">
+                <td th:text="${t.idLocalEmpresa}">1</td>
+                <td th:text="${t.grupoId}"></td>
+                <td th:text="${t.tipoTransacao != null ? t.tipoTransacao.nome : ''}"></td>
+                <td th:text="${t.tabelaResponsavel}"></td>
+                <td>
+                    <span th:if="${t.tabelaResponsavel} == 'Usuario'" th:text="${labelUsuarios[t.responsavelId] != null ? labelUsuarios[t.responsavelId] : t.responsavelId}"></span>
+                    <span th:if="${t.tabelaResponsavel} == 'Cliente'" th:text="${labelClientes[t.responsavelId] != null ? labelClientes[t.responsavelId] : t.responsavelId}"></span>
+                    <span th:if="${t.tabelaResponsavel} == 'Produto'" th:text="${labelProdutos[t.responsavelId] != null ? labelProdutos[t.responsavelId] : t.responsavelId}"></span>
+                    <span th:if="${t.tabelaResponsavel} == 'Tesouro'" th:text="${labelTesouros[t.responsavelId] != null ? labelTesouros[t.responsavelId] : t.responsavelId}"></span>
+                    <span th:if="${t.tabelaResponsavel} != 'Usuario' and ${t.tabelaResponsavel} != 'Cliente' and ${t.tabelaResponsavel} != 'Produto' and ${t.tabelaResponsavel} != 'Tesouro'" th:text="${t.responsavelId}"></span>
+                </td>
+                <td>
+                    <span th:if="${t.foiResolvido}" th:text="${#temporals.format(t.dataResolucao,'dd/MM/yyyy HH:mm')}"></span>
+                    <span th:if="${!t.foiResolvido}" th:text="${#temporals.format(t.dataCriacao,'dd/MM/yyyy HH:mm')}"></span>
+                </td>
+                <td>
+                    <span class="badge" th:classappend="${t.foiResolvido} ? ' bg-success' : ' bg-secondary'" th:text="${t.foiResolvido} ? '+' : '-'">-</span>
+                </td>
+                <td>
+                    <span class="badge" th:classappend="${t.ehValida} ? ' bg-success' : ' bg-danger'" th:text="${t.ehValida} ? '+' : '-'">+</span>
+                </td>
+                <td>
+                    <form method="post" action="/transacoes/quitar" class="m-0">
+                        <input type="hidden" name="tipo" th:value="${tipo}">
+                        <input type="hidden" name="idLocalEmpresa" th:value="${t.idLocalEmpresa}">
+                        <button type="submit" class="btn btn-sm btn-primary"
+                                th:disabled="${!t.ehValida or t.foiResolvido}">Quitar</button>
+                    </form>
+                </td>
             </tr>
             </tbody>
         </table>
     </div>
 </div>
+
+
+<div class="modal fade" id="modalGrupo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Criar Grupo de Transações</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formGrupo" method="post" action="/transacoes/grupo/criar">
+                    <input type="hidden" name="tipoTela" th:value="${tipo}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="tipoNomeGrupo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipoNomeGrupo" name="tipoNome" required>
+                                <option th:each="n : ${tiposTransacaoNomes}" th:value="${n}" th:text="${n}"></option>
+                            </select>
+                            <div class="form-text">O sistema criará as etapas: Usuário, Cliente, Produto, Tesouro (quando informados).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="intervaloCobrancaGrupo" class="form-label">Intervalo cobrança (dias)</label>
+                            <input class="form-control" id="intervaloCobrancaGrupo" name="intervaloCobranca" type="number" min="1" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="clienteIdGrupo" class="form-label">Cliente</label>
+                            <select class="form-select" id="clienteIdGrupo" name="clienteId">
+                                <option value="">(Opcional)</option>
+                                <option th:each="c : ${clientes}" th:value="${c.idLocalEmpresa}" th:text="${c.nome}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="produtoIdGrupo" class="form-label">Produto</label>
+                            <select class="form-select" id="produtoIdGrupo" name="produtoId">
+                                <option value="">(Opcional)</option>
+                                <option th:each="p : ${produtos}" th:value="${p.idLocalEmpresa}" th:text="${p.nome}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tesouroIdGrupo" class="form-label">Tesouro</label>
+                            <select class="form-select" id="tesouroIdGrupo" name="tesouroId">
+                                <option value="">(Opcional)</option>
+                                <option th:each="t : ${tesouros}" th:value="${t.idLocalEmpresa}" th:text="${t.nomeConta}"></option>
+                            </select>
+                            <div class="form-text">A forma de pagamento é inferida pelo Tesouro (nome/conta).</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formGrupo" class="btn btn-success">Criar Grupo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalSalvar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalSalvarTitle">Salvar Transação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formSalvar" method="post" action="/transacoes/salvar">
+                    <input type="hidden" name="tipoTela" th:value="${tipo}">
+                    <input type="hidden" name="idLocalEmpresa" id="idLocalEmpresaSalvar">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="tipoNomeSalvar">Tipo</label>
+                            <select class="form-select" name="tipoNome" id="tipoNomeSalvar" required>
+                                <option th:each="n : ${tiposTransacaoNomes}" th:value="${n}" th:text="${n}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="tabelaResponsavelSalvar">Tabela Responsável</label>
+                            <select class="form-select" name="tabelaResponsavel" id="tabelaResponsavelSalvar" required>
+                                <option value="Usuario">Usuário</option>
+                                <option value="Cliente">Cliente</option>
+                                <option value="Produto">Produto</option>
+                                <option value="Tesouro">Tesouro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="responsavelUsuarioSalvar">Responsável (ID)</label>
+                            <select class="form-select" name="responsavelId" id="responsavelUsuarioSalvar" required>
+                                <option value="">Selecione</option>
+                                <option th:each="u : ${usuarios}" th:value="${u.idLocalEmpresa}" th:text="${u.login}"></option>
+                            </select>
+
+                            <select class="form-select d-none" name="responsavelId" id="responsavelClienteSalvar" required>
+                                <option value="">Selecione</option>
+                                <option th:each="c : ${clientes}" th:value="${c.idLocalEmpresa}" th:text="${c.nome}"></option>
+                            </select>
+
+                            <select class="form-select d-none" name="responsavelId" id="responsavelProdutoSalvar" required>
+                                <option value="">Selecione</option>
+                                <option th:each="p : ${produtos}" th:value="${p.idLocalEmpresa}" th:text="${p.nome}"></option>
+                            </select>
+
+                            <select class="form-select d-none" name="responsavelId" id="responsavelTesouroSalvar" required>
+                                <option value="">Selecione</option>
+                                <option th:each="t : ${tesouros}" th:value="${t.idLocalEmpresa}" th:text="${t.nomeConta}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="intervaloCobrancaSalvar">Intervalo cobrança (dias)</label>
+                            <input class="form-control" name="intervaloCobranca" id="intervaloCobrancaSalvar" type="number" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="foiResolvidoSalvar">Finalizada</label>
+                            <select class="form-select" name="foiResolvido" id="foiResolvidoSalvar">
+                                <option value="false">-</option>
+                                <option value="true">+</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formSalvar" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAlterar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Alterar Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAlterar" method="post" action="/transacoes/toggle-status">
+                    <input type="hidden" name="tipo" th:value="${tipo}">
+                    <input type="hidden" name="idLocalEmpresa" id="idLocalEmpresaAlterar">
+                </form>
+                <div class="alert alert-info py-2" id="previewAlterar" style="display:none;"></div>
+                <div class="form-text">Isso altera apenas o status (ativo/inativo) para uso em relatórios/transações.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formAlterar" class="btn btn-warning text-white">Alterar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAlterarGrupo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Alterar Status (Grupo)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAlterarGrupo" method="post" action="/transacoes/grupo/toggle-status">
+                    <input type="hidden" name="tipo" th:value="${tipo}">
+                    <input type="hidden" name="grupoId" id="grupoIdAlterar">
+                </form>
+                <div class="alert alert-info py-2" id="previewGrupoAlterar" style="display:none;"></div>
+                <div class="form-text">Isso altera o status (ativo/inativo) para TODAS as transações do grupo.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formAlterarGrupo" class="btn btn-warning text-white">Alterar Grupo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalQuitarGrupo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quitar Grupo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formQuitarGrupo" method="post" action="/transacoes/grupo/quitar">
+                    <input type="hidden" name="tipo" th:value="${tipo}">
+                    <input type="hidden" name="grupoId" id="grupoIdQuitar">
+                </form>
+                <div class="alert alert-info py-2" id="previewGrupoQuitar" style="display:none;"></div>
+                <div class="form-text">Quita todas as etapas do grupo. Se existir alguma etapa inválida, não permite.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formQuitarGrupo" class="btn btn-primary">Quitar Grupo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFiltro" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filtro inteligente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFiltro" method="get" action="/tabelas">
+                    <input type="hidden" name="tipo" th:value="${tipo}">
+                    <div class="mb-3">
+                        <label for="dataInicio" class="form-label">Período</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input class="form-control" id="dataInicio" type="date" name="dataInicio">
+                            </div>
+                            <div class="col-6">
+                                <input class="form-control" id="dataFim" type="date" name="dataFim">
+                            </div>
+                        </div>
+                        <div class="form-text">Filtra por data de criação/resolução (conforme opção abaixo).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="campoData" class="form-label">Campo de data</label>
+                        <select class="form-select" id="campoData" name="campoData">
+                            <option value="auto" selected>Automático (criação se pendente / resolução se quitado)</option>
+                            <option value="criacao">Criação</option>
+                            <option value="resolucao">Resolução</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusFiltro" class="form-label">Status</label>
+                        <select class="form-select" id="statusFiltro" name="status">
+                            <option value="todos" th:selected="${status}=='todos'">Todos</option>
+                            <option value="ativos" th:selected="${status}=='ativos'">Ativos</option>
+                            <option value="inativos" th:selected="${status}=='inativos'">Inativos</option>
+                            <option value="quitados" th:selected="${status}=='quitados'">Quitados</option>
+                            <option value="devendo" th:selected="${status}=='devendo'">Devendo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sort1" class="form-label">Ordenação 1</label>
+                        <select class="form-select" id="sort1" name="sort1">
+                            <option value="idLocalEmpresa">ID</option>
+                            <option value="dataCriacao">Data</option>
+                            <option value="foiResolvido">Finalizada</option>
+                            <option value="ehValida">Status</option>
+                            <option value="tabelaResponsavel">Tabela</option>
+                            <option value="responsavelId">Responsável</option>
+                            <option value="intervaloCobranca">Intervalo</option>
+                        </select>
+                        <select class="form-select mt-2" name="dir1">
+                            <option value="asc">Crescente</option>
+                            <option value="desc">Decrescente</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sort2" class="form-label">Ordenação 2 (opcional)</label>
+                        <select class="form-select" id="sort2" name="sort2">
+                            <option value="">Nenhuma</option>
+                            <option value="idLocalEmpresa">ID</option>
+                            <option value="dataCriacao">Data</option>
+                            <option value="foiResolvido">Finalizada</option>
+                            <option value="ehValida">Status</option>
+                            <option value="tabelaResponsavel">Tabela</option>
+                            <option value="responsavelId">Responsável</option>
+                            <option value="intervaloCobranca">Intervalo</option>
+                        </select>
+                        <select class="form-select mt-2" name="dir2">
+                            <option value="asc">Crescente</option>
+                            <option value="desc">Decrescente</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formFiltro" class="btn btn-secondary">Filtrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:if="${modo}=='transacao'" th:replace="~{relatorio :: modalRelatorio}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let selectedIdLocalEmpresa = null;
+    let selectedGrupoId = null;
+    let selectedTipoNome = null;
+    let selectedTabelaResponsavel = null;
+    let selectedResponsavelId = null;
+    let selectedIntervalo = null;
+    let selectedFoiResolvido = null;
+    let selectedRowPreviewText = null;
+
+    function renderPreviewGrupo(targetId) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+
+        if (!selectedGrupoId) {
+            el.style.display = 'none';
+            el.innerText = '';
+            return;
+        }
+
+        const headerTr = document.querySelector('tr.table-secondary[data-grupoid="' + selectedGrupoId + '"]');
+        if (!headerTr) {
+            el.style.display = 'block';
+            el.innerText = 'Grupo: ' + selectedGrupoId;
+            return;
+        }
+
+        const text = headerTr.innerText.replace(/\s+/g, ' ').trim();
+        el.style.display = 'block';
+        el.innerText = text;
+    }
+
+    document.addEventListener('click', function (e) {
+        const tr = e.target.closest('tr[data-idlocal]');
+        if (!tr) return;
+
+        document.querySelectorAll('tr[data-idlocal].table-primary').forEach(r => r.classList.remove('table-primary'));
+        tr.classList.add('table-primary');
+
+        const idLocal = tr.getAttribute('data-idlocal');
+        selectedIdLocalEmpresa = idLocal;
+
+        selectedTipoNome = tr.getAttribute('data-tiponome');
+        selectedTabelaResponsavel = tr.getAttribute('data-tabelaresp');
+        selectedResponsavelId = tr.getAttribute('data-respid');
+        selectedIntervalo = tr.getAttribute('data-intervalo');
+        selectedFoiResolvido = tr.getAttribute('data-foiresolvido');
+
+        const tds = tr.querySelectorAll('td');
+        if (tds && tds.length >= 5) {
+            const idTxt = (tds[0].innerText || '').trim();
+            const grupoTxt = (tds[1].innerText || '').trim();
+            const tipoTxt = (tds[2].innerText || '').trim();
+            const tabelaTxt = (tds[3].innerText || '').trim();
+            const respTxt = (tds[4].innerText || '').trim();
+            selectedRowPreviewText = 'ID: ' + idTxt + ' | Grupo: ' + grupoTxt + ' | Tipo: ' + tipoTxt + ' | ' + tabelaTxt + ': ' + respTxt;
+        } else {
+            selectedRowPreviewText = null;
+        }
+
+        const a = document.getElementById('idLocalEmpresaAlterar');
+        const s = document.getElementById('idLocalEmpresaSalvar');
+        if (a) a.value = idLocal;
+        if (s) s.value = idLocal;
+
+        if (tds && tds.length >= 2) {
+            const grupoId = tds[1].innerText;
+            selectedGrupoId = (grupoId || '').trim();
+            const g = document.getElementById('grupoIdAlterar');
+            if (g) g.value = (grupoId || '').trim();
+
+            const q = document.getElementById('grupoIdQuitar');
+            if (q) q.value = (grupoId || '').trim();
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-bs-target="#modalAlterar"]');
+        if (!btn) return;
+        if (!selectedIdLocalEmpresa) {
+            e.preventDefault();
+            alert('Selecione uma transação na tabela antes de alterar o status.');
+            return;
+        }
+
+        const prev = document.getElementById('previewAlterar');
+        if (prev) {
+            prev.style.display = 'block';
+            prev.innerText = selectedRowPreviewText ? selectedRowPreviewText : ('ID: ' + selectedIdLocalEmpresa);
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-bs-target="#modalAlterarGrupo"], button[data-bs-target="#modalQuitarGrupo"]');
+        if (!btn) return;
+
+        if (!selectedGrupoId) {
+            e.preventDefault();
+            alert('Selecione uma etapa de um grupo na tabela antes de alterar/quitar o grupo.');
+            return;
+        }
+
+        const g = document.getElementById('grupoIdAlterar');
+        if (g) g.value = selectedGrupoId;
+        const q = document.getElementById('grupoIdQuitar');
+        if (q) q.value = selectedGrupoId;
+
+        renderPreviewGrupo('previewGrupoAlterar');
+        renderPreviewGrupo('previewGrupoQuitar');
+    });
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-salvar-modo]');
+        if (!btn) return;
+
+        const modo = btn.getAttribute('data-salvar-modo');
+        const title = document.getElementById('modalSalvarTitle');
+        const idField = document.getElementById('idLocalEmpresaSalvar');
+
+        if (modo === 'criar') {
+            if (title) title.innerText = 'Adicionar Transação (Avulsa)';
+            if (idField) idField.value = '';
+            selectedIdLocalEmpresa = null;
+
+            const tabela = document.getElementById('tabelaResponsavelSalvar');
+            const intervalo = document.getElementById('intervaloCobrancaSalvar');
+            const foi = document.getElementById('foiResolvidoSalvar');
+
+            if (tabela) tabela.value = 'Usuario';
+            toggleResponsavelSelect();
+            if (intervalo) intervalo.value = '';
+            if (foi) foi.value = 'false';
+        }
+
+        if (modo === 'atualizar') {
+            if (title) title.innerText = 'Atualizar Transação (Avulsa)';
+            if (!selectedIdLocalEmpresa) {
+                e.preventDefault();
+                alert('Selecione uma transação na tabela antes de atualizar.');
+                const modalEl = document.getElementById('modalSalvar');
+                if (modalEl) modalEl.classList.remove('show');
+                return;
+            }
+            if (idField) idField.value = selectedIdLocalEmpresa;
+
+            const tipoNome = document.getElementById('tipoNomeSalvar');
+            if (tipoNome && selectedTipoNome) tipoNome.value = selectedTipoNome;
+
+            const tabela = document.getElementById('tabelaResponsavelSalvar');
+            if (tabela && selectedTabelaResponsavel) {
+                tabela.value = selectedTabelaResponsavel;
+            }
+            toggleResponsavelSelect();
+
+            const intervalo = document.getElementById('intervaloCobrancaSalvar');
+            if (intervalo && selectedIntervalo) intervalo.value = selectedIntervalo;
+
+            const foi = document.getElementById('foiResolvidoSalvar');
+            if (foi && (selectedFoiResolvido === 'true' || selectedFoiResolvido === 'false')) {
+                foi.value = selectedFoiResolvido;
+            }
+
+            if (selectedResponsavelId) {
+                const sU = document.getElementById('responsavelUsuarioSalvar');
+                const sC = document.getElementById('responsavelClienteSalvar');
+                const sP = document.getElementById('responsavelProdutoSalvar');
+                const sT = document.getElementById('responsavelTesouroSalvar');
+                [sU, sC, sP, sT].filter(Boolean).forEach(sel => {
+                    if (!sel.disabled) sel.value = selectedResponsavelId;
+                });
+            }
+        }
+    });
+
+    function toggleResponsavelSelect() {
+        const tabela = document.getElementById('tabelaResponsavelSalvar');
+        if (!tabela) return;
+        const v = (tabela.value || '').trim();
+
+        const sU = document.getElementById('responsavelUsuarioSalvar');
+        const sC = document.getElementById('responsavelClienteSalvar');
+        const sP = document.getElementById('responsavelProdutoSalvar');
+        const sT = document.getElementById('responsavelTesouroSalvar');
+
+        const all = [sU, sC, sP, sT].filter(Boolean);
+        all.forEach(s => {
+            s.classList.add('d-none');
+            s.disabled = true;
+            s.removeAttribute('name');
+        });
+
+        let active = sU;
+        if (v === 'Cliente') active = sC;
+        if (v === 'Produto') active = sP;
+        if (v === 'Tesouro') active = sT;
+
+        if (active) {
+            active.classList.remove('d-none');
+            active.disabled = false;
+            active.setAttribute('name', 'responsavelId');
+        }
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'tabelaResponsavelSalvar') {
+            toggleResponsavelSelect();
+        }
+    });
+
+    toggleResponsavelSelect();
+</script>
 
 </body>
 </html>
