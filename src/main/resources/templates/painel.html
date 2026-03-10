@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .metric-card {
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .nav-link {
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <i class="bi bi-speedometer2 me-2"></i>
+            <span class="fw-bold">Dashboard</span>
+        </a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/tabelas">
+                        <i class="bi bi-table me-1"></i> Tabelas
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/movimentacoes">
+                        <i class="bi bi-arrow-left-right me-1"></i> Movimentações
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/relatorio">
+                        <i class="bi bi-file-earmark-text me-1"></i> Relatórios
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/auditoria">
+                        <i class="bi bi-shield-check me-1"></i> Auditoria
+                    </a>
+                </li>
+                <li class="nav-item ms-3">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i> Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container flex-grow-1 py-4">
+    <!-- Alerta de Cobranças Pendentes -->
+    <div class="alert alert-warning alert-dismissible fade show d-flex justify-content-between align-items-center" 
+         th:if="${session.temCobrancasPendentes}" role="alert">
+        <div>
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Aviso de Cobrança:</strong> Existem transações com data de cobrança atingida e não resolvidas.
+        </div>
+        <a class="btn btn-sm btn-outline-dark" href="/tabelas?status=devendo">
+            <i class="bi bi-eye me-1"></i> Ver Pendentes
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Cards de Métricas -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card metric-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="bi bi-cart-plus" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="card-title">Vendas</h5>
+                    <p class="card-text text-muted">Gerenciar vendas</p>
+                    <a href="/vendas" class="btn btn-primary btn-sm">Acessar</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="bi bi-cart" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="card-title">Compras</h5>
+                    <p class="card-text text-muted">Controlar compras</p>
+                    <a href="/compras" class="btn btn-success btn-sm">Acessar</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-info mb-2">
+                        <i class="bi bi-arrow-left-right" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="card-title">Movimentações</h5>
+                    <p class="card-text text-muted">Financeiro e Estoque</p>
+                    <a href="/movimentacoes" class="btn btn-info btn-sm">Acessar</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-dark mb-2">
+                        <i class="bi bi-file-earmark-text" style="font-size: 2rem;"></i>
+                    </div>
+                    <h5 class="card-title">Relatórios</h5>
+                    <p class="card-text text-muted">Análises e PDFs</p>
+                    <a href="/relatorio" class="btn btn-dark btn-sm">Acessar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Ações Rápidas -->
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100">
+                                <i class="bi bi-plus-circle me-1"></i> Nova Venda
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-success w-100">
+                                <i class="bi bi-plus-circle me-1"></i> Nova Compra
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-info w-100">
+                                <i class="bi bi-plus-circle me-1"></i> Nova Movimentação
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Sistema
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Status:</span>
+                        <span class="badge bg-success">Online</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Notificações:</span>
+                        <span class="badge bg-warning" th:text="${session.temCobrancasPendentes ? 'Pendentes' : 'Nenhuma'}">Nenhuma</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Usuário:</span>
+                        <small class="text-muted" th:text="${#authentication.name}">Admin</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="bg-dark text-white py-3 mt-auto">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <small>&copy; 2024 Dono do Negócio - Sistema ERP</small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">v1.0.0</small>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

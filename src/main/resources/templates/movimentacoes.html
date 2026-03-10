@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimentações - ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <h1 class="h3">Painel de Movimentações</h1>
+        <div class="p-3 bg-secondary text-white rounded text-center" style="width: 150px;">
+            <small>Logo</small><br><strong>Empresa</strong>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white fw-bold">Financeiro</div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="/tabelas?status=devendo" class="btn btn-outline-danger btn-sm">Despesas</a>
+                        <a href="/tabelas?status=quitados" class="btn btn-outline-success btn-sm">Receitas</a>
+                        <button class="btn btn-outline-info btn-sm" onclick="abrirCustomizadoFinanceiro()">Customizado</button>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Status de Pagamento:
+                            <div>
+                                <span class="badge bg-warning text-dark">Devendo</span>
+                                <span class="badge bg-success">Quitado</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white fw-bold">Estoque</div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="abrirEntradas()">Entradas</button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="abrirSaidas()">Saídas</button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="abrirCustomizadoEstoque()">Customizado</button>
+                    </div>
+                    <p class="text-muted small">Visualize aqui o histórico de movimentação física de produtos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="/dashboard" class="btn btn-secondary">Voltar</a>
+    </div>
+</div>
+
+<!-- Modal Customizado Financeiro -->
+<div class="modal fade" id="modalCustomizadoFinanceiro" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filtro Financeiro Customizado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFinanceiroCustomizado">
+                    <div class="mb-3">
+                        <label for="dataInicio" class="form-label">Período</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="date" class="form-control" name="dataInicio" id="dataInicio">
+                            </div>
+                            <div class="col-6">
+                                <input type="date" class="form-control" name="dataFim" id="dataFim">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="magnitude" class="form-label">Magnitude</label>
+                        <select class="form-select" name="magnitude" id="magnitude">
+                            <option value="">Todas</option>
+                            <option value="financeira">Financeira</option>
+                            <option value="logistica">Logística</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="autor" class="form-label">Autor</label>
+                        <select class="form-select" name="autor" id="autor">
+                            <option value="">Todos</option>
+                            <option value="admin">Admin</option>
+                            <option value="gerencia">Gerência</option>
+                            <option value="operador">Operador</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="beneficiador" class="form-label">Beneficiador</label>
+                        <select class="form-select" name="beneficiador" id="beneficiador">
+                            <option value="">Todos</option>
+                            <option value="empresa">Empresa</option>
+                            <option value="cliente">Cliente</option>
+                            <option value="fornecedor">Fornecedor</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltroFinanceiro()">Aplicar Filtro</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Customizado Estoque -->
+<div class="modal fade" id="modalCustomizadoEstoque" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filtro Estoque Customizado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEstoqueCustomizado">
+                    <div class="mb-3">
+                        <label for="dataInicioEstoque" class="form-label">Período</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="date" class="form-control" name="dataInicio" id="dataInicioEstoque">
+                            </div>
+                            <div class="col-6">
+                                <input type="date" class="form-control" name="dataFim" id="dataFimEstoque">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="produto" class="form-label">Produto</label>
+                        <select class="form-select" name="produto" id="produto">
+                            <option value="">Todos</option>
+                            <option value="1">Produto 1</option>
+                            <option value="2">Produto 2</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipoMovimentacao" class="form-label">Tipo de Movimentação</label>
+                        <select class="form-select" name="tipoMovimentacao" id="tipoMovimentacao">
+                            <option value="">Todos</option>
+                            <option value="entrada">Entrada</option>
+                            <option value="saida">Saída</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltroEstoque()">Aplicar Filtro</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function abrirCustomizadoFinanceiro() {
+    new bootstrap.Modal(document.getElementById('modalCustomizadoFinanceiro')).show();
+}
+
+function abrirCustomizadoEstoque() {
+    new bootstrap.Modal(document.getElementById('modalCustomizadoEstoque')).show();
+}
+
+function abrirEntradas() {
+    window.location.href = '/tabelas?tipo=entrada&status=ativos';
+}
+
+function abrirSaidas() {
+    window.location.href = '/tabelas?tipo=saida&status=ativos';
+}
+
+function aplicarFiltroFinanceiro() {
+    const form = document.getElementById('formFinanceiroCustomizado');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) params.append(key, value);
+    }
+    
+    window.location.href = '/tabelas?' + params.toString();
+}
+
+function aplicarFiltroEstoque() {
+    const form = document.getElementById('formEstoqueCustomizado');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) params.append(key, value);
+    }
+    
+    window.location.href = '/tabelas?' + params.toString();
+}
+</script>
+</body>
+</html>
