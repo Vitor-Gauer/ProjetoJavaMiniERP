@@ -31,26 +31,7 @@
                 <label for="identificador" class="form-label fw-bold">Identificador/CNPJ:</label>
                 <input type="text" class="form-control" id="identificador" placeholder="00.000.000/0000-00">
             </div>
-
-            <div class="mb-3">
-                <label for="logoInput" class="form-label fw-bold">Logo da Empresa:</label>
-                <input class="form-control" type="file" id="logoInput" accept="image/*" onchange="previewImage()">
-                <div id="passwordHelpBlock" class="form-text">
-                    Selecione um arquivo de imagem (PNG, JPG ou SVG).
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <div id="imagePreview" class="border d-flex align-items-center justify-content-center bg-light" style="width: 150px; height: 150px; border-radius: 8px; overflow: hidden;">
-                    <span class="text-muted" id="previewText">Prévia</span>
-                    <img src="" id="logoPreview" alt="Prévia do logo da empresa" style="display: none; width: 100%; height: 100%; object-fit: contain;">
-                </div>
-                <div class="mt-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearImage()">
-                        Remover Logo
-                    </button>
-                </div>
-            </div>
+            
             <hr class="my-4">
 
             <div class="mb-3">
@@ -84,54 +65,10 @@
                 <a href="/login" class="btn btn-link text-decoration-none text-muted small">Já tenho cadastro (Login)</a>
             </div>
         </form>
-
-        <hr class="my-4">
-
-        <div class="text-center">
-            <p class="small text-secondary mb-0">
-                O login empresarial permite adicionar novos usuários posteriormente.
-            </p>
-        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function previewImage() {
-        const file = document.getElementById('logoInput').files[0];
-        const preview = document.getElementById('logoPreview');
-        const previewText = document.getElementById('previewText');
-
-        if (file) {
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                previewText.style.display = 'none';
-            }
-
-            reader.readAsDataURL(file);
-        } else {
-            preview.src = "";
-            preview.style.display = 'none';
-            previewText.style.display = 'block';
-        }
-    }
-
-    function clearImage() {
-        const fileInput = document.getElementById('logoInput');
-        const preview = document.getElementById('logoPreview');
-        const previewText = document.getElementById('previewText');
-
-        fileInput.value = "";
-
-        preview.src = "";
-        preview.style.display = 'none';
-
-        previewText.style.display = 'block';
-    }
-</script>
 
 </body>
 </html>
