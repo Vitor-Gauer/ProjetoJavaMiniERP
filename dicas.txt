@@ -1,1 +1,0 @@
-Para arrumar Intellij não reconhecendo imports ou dependencias, tente "invalidate Caches" no "alt+\"
