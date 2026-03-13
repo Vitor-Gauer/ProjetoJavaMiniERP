@@ -17,15 +17,15 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/", "/index", "/css/**", "/js/**").permitAll() // Libera a página inicial
+                .anyRequest().authenticated() // Protege o painel e os CRUDs
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/", true)
+                .defaultSuccessUrl("/painel", true) // Redireciona para cá após logar
                 .permitAll()
             )
-            .logout(logout -> logout.permitAll());
+            .logout(logout -> logout.logoutSuccessUrl("/").permitAll());
         
         return http.build();
     }
