@@ -19,6 +19,57 @@
         .nav-link:hover {
             background-color: rgba(255,255,255,0.1);
         }
+        .modal-overlay {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+            backdrop-filter: blur(3px);
+        }
+    
+        .modal-box {
+            background-color: #fff; 
+            margin: 10% auto; 
+            padding: 20px; 
+            border-radius: 8px; 
+            width: 80%; 
+            max-width: 700px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    
+        /* Grid e Links (Cards) */
+        .grid-links {
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px;
+        }
+    
+        .card-link {
+            background: #fdfdfd; 
+            border: 1px solid #e1e1e1; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #333; 
+            display: block;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer; /* Garante que o cursor mude para a mãozinha */
+        }
+    
+        /* Efeito de Hover: Mudança de cor e elevação */
+        .card-link:hover {
+            background: #f0f7ff; 
+            border-color: #3498db; 
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+            color: #3498db; /* Muda a cor do texto/ícone no hover */
+        }
+    
+        .card-link h3 { margin-top: 0; }
+        .card-link p { margin-bottom: 0; font-size: 0.9em; color: #666; }
     </style>
 </head>
 <body class="bg-light d-flex flex-column min-vh-100">
@@ -37,24 +88,9 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="/tabelas">
-                        <i class="bi bi-table me-1"></i> Tabelas
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/movimentacoes">
-                        <i class="bi bi-arrow-left-right me-1"></i> Movimentações
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/relatorio">
-                        <i class="bi bi-file-earmark-text me-1"></i> Relatórios
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/auditoria">
-                        <i class="bi bi-shield-check me-1"></i> Auditoria
-                    </a>
+                    <button onclick="abrirModalLinks()" style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                        Acessar Módulos (Tabelas)
+                    </button>
                 </li>
                 <li class="nav-item ms-3">
                     <form th:action="@{/logout}" method="post" class="d-inline">
@@ -207,6 +243,59 @@
     </div>
 </footer>
 
+<div id="modalTabelasLinks" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="margin: 0;">Módulos do Sistema</h2>
+            <span onclick="fecharModalLinks()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        
+        <div class="grid-links">
+            <a th:href="@{/clientes}" class="card-link">
+                <h3>Clientes</h3>
+                <p>Gerenciar carteira</p>
+            </a>
+            <a th:href="@{/produtos}" class="card-link">
+                <h3>Produtos</h3>
+                <p>Controle de estoque</p>
+            </a>
+            <a th:href="@{/fornecedores}" class="card-link">
+                <h3>Fornecedores</h3>
+                <p>Parceiros de negócios</p>
+            </a>
+            <a th:href="@{/movimentacoes}" class="card-link">
+                <h3>Movimentações</h3>
+                <p>Entradas e saídas</p>
+            </a>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const modalTabelas = document.getElementById('modalTabelasLinks');
+
+    function abrirModalLinks() {
+        modalTabelas.style.display = 'block';
+    }
+
+    function fecharModalLinks() {
+        modalTabelas.style.display = 'none';
+    }
+
+    // Fecha o modal ao clicar fora dele
+    window.addEventListener('click', function(event) {
+        if (event.target === modalTabelas) {
+            fecharModalLinks();
+        }
+    });
+    
+    // Fecha o modal com a tecla ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Escape") {
+            fecharModalLinks();
+        }
+    });
+</script>
 </body>
 </html>
