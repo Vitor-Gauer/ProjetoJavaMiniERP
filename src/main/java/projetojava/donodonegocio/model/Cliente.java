@@ -1,45 +1,20 @@
-package projetojava.donodonegocio.model;
+package com.projetojava.donodonegocio.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import java.math.BigDecimal;
+import lombok.Data;
 
+@Data
 @Entity
-@Table(name = "Cliente")
-@Getter
-@Setter
-@AssociationOverride(name = "empresa", joinColumns = @JoinColumn(name = "empresa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_cliente_empresa")))
-public class Cliente extends BaseEmpresaEntity {
-
-    @Column(nullable = false)
+@Table(name = "clientes")
+public class Cliente {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String nome;
-
-    @Column(length = 200)
-    private String endereco;
-
-    @Transient
+    private String email;
     private String cep;
-    
-    @Transient
-    private String rua;
-    
-    @Transient
-    private String numero;
-    
-    @Transient
-    private String complemento;
-
-    @Column(length = 12)
-    private String telefone;
-
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal saldo;
-
-    @PrePersist
-    protected void onCreate() {
-        if (saldo == null) {
-            saldo = BigDecimal.ZERO;
-        }
-    }
+    private String logradouro;
+    private String bairro;
+    private String localidade;
+    private String uf;
 }
