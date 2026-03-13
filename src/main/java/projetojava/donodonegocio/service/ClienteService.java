@@ -25,8 +25,7 @@ public class ClienteService {
         cliente.setBairro(dto.bairro());
         cliente.setLocalidade(dto.localidade());
         cliente.setUf(dto.uf());
-        
-        // Aqui entrariam outras regras de negócio antes de salvar
+    
         repository.save(cliente);
     }
 
